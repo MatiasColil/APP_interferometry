@@ -1,9 +1,35 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import uuid from 'react-native-uuid';
 
+export const sendJSON = async () => {
+    const storeGroupID = await AsyncStorage.getItem('selectedGroup');
+    const positions = await fetch(`http://10.0.2.2:8000/api/register/?actual_group=${storeGroupID}`);
+    const refPoint = await fetch(`http://10.0.2.2:8000/api/ref/${storeGroupID}`);
+    const dataPos = await positions.json();
+    const dataRef = await refPoint.json();
+    try{
+        const response = await fetch('http://10.0.2.2:8000/api/test/', {
+            method: "POST",
+            headers:{
+                'Content-Type': 'application/json',
+            },
+            body:JSON.stringify({
+                locations : dataPos,
+                reference : dataRef,
+            }),
+        });
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+    } catch (error){
+        console.error("Error sending position:", error);
+    }
+}
+
 export const fetchDevicePositions = async () => {
     try {
-        const response = await fetch(`http://10.0.2.2:8000/api/register/`);
+        const storeGroupID = await AsyncStorage.getItem('selectedGroup');
+        const response = await fetch(`http://10.0.2.2:8000/api/register/?actual_group=${storeGroupID}`);
         const data = await response.json();
         return data;
     } catch (error) {
@@ -21,15 +47,33 @@ export const checkDeviceExists = async (uuid) => {
         if (response.status === 404) {
             return false;
         }
-        throw new Error('Unexpected API response');
+        throw new Error('error');
     } catch (error) {
         console.error("Error checking device existence:", error);
         return false;
     }
 };
 
+export const checkRefPointExist = async () => {
+    try {
+        const storeGroupID = await AsyncStorage.getItem('selectedGroup');
+        const response = await fetch(`http://10.0.2.2:8000/api/ref/?actual_group=${storeGroupID}/`);
+        if (response.ok) {
+            return true
+        }
+        if (response.status === 404) {
+            return false;
+        }
+        throw new Error('error');
+    } catch (error) {
+        console.error("Error checking reference point existence:", error);
+        return false;
+    }
+}
+
 export const sendPositionToServer = async (uuid, position) => {
     try {
+        const storeGroupID = await AsyncStorage.getItem('selectedGroup');
         let exist = await checkDeviceExists(uuid);
         let metodo = exist ? 'PUT' : 'POST';
         let string = `http://10.0.2.2:8000/api/register/${exist ? uuid + "/" : ""}`
@@ -42,6 +86,8 @@ export const sendPositionToServer = async (uuid, position) => {
                 device_id: uuid,
                 latitude: position.latitude,
                 longitude: position.longitude,
+                altitude: position.altitude,
+                actual_group: storeGroupID,
             }),
         });
 
@@ -49,7 +95,6 @@ export const sendPositionToServer = async (uuid, position) => {
             throw new Error('Network response was not ok');
         }
 
-        const data = response.json();
         console.log("Position sent successfully");
     } catch (error) {
         console.error("Error sending position:", error);
@@ -71,3 +116,103 @@ export const fetchOrGenerateUUID = async () => {
         console.error("Error retrieving UUID:", error);
     }
 };
+
+export const isTokenValid = async () => {
+    try {
+        const token = await AsyncStorage.getItem('accessToken');
+
+        if (!token) {
+            return false;
+        }
+
+        const response = await fetch('http://10.0.2.2:8000/api/auth/verify/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ token: token })
+        });
+
+        return response.ok;
+    } catch (error) {
+        console.error('Error verifying token:', error);
+        return false;
+    }
+};
+
+export const fetchGroups = async () => {
+    try {
+        const response = await fetch('http://10.0.2.2:8000/api/groups/');
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error('Error al obtener los grupos:', error);
+        return null;
+    }
+}
+
+export const fetchGroupID = async () => {
+    try {
+        const storeGroupID = await AsyncStorage.getItem('selectedGroup');
+        if (storeGroupID != null) {
+            return storeGroupID;
+        }
+    } catch (error) {
+        console.error("Error retrieving Group ID", error);
+    }
+}
+
+export const createNewGroup = async (name) => {
+    try {
+        const response = await fetch('http://10.0.2.2:8000/api/groups/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                Group: name
+            })
+        });
+
+        if (response.ok) {
+            const data = await response.json()
+            await AsyncStorage.removeItem('selectedGroup');
+            await AsyncStorage.setItem('selectedGroup', data.id.toString());
+            console.log("Posición creada y guardada.")
+        }
+        else {
+            throw new Error('Network response was not ok')
+        }
+    } catch (error) {
+        console.error("Error al crear el grupo: ", error);
+    }
+}
+
+export const sendRefPoint = async (refPoint) => {
+    try {
+        const storeGroupID = await AsyncStorage.getItem('selectedGroup');
+        let exist = await checkRefPointExist();
+        let metodo = exist ? 'PUT' : 'POST';
+        let string = `http://10.0.2.2:8000/api/ref/${exist ? storeGroupID + "/" : ""}`
+        const response = await fetch(string, {
+            method: metodo,
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                altitude: refPoint.altitude,
+                latitude: refPoint.latitude,
+                longitude: refPoint.longitude,
+                actual_group: storeGroupID,
+            }),
+        });
+
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+
+        console.log("Reference point sent successfully");
+    } catch (error) {
+        console.error("Error sending reference point:", error);
+    }
+}
