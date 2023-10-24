@@ -6,6 +6,7 @@ import { SelectGroupAdmin, SelectGroupGuest } from './components/SelectGroup';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { isTokenValid } from './services/deviceService';
+import { Test1 } from './components/Test'
 
 
 function HomeScreen({ navigation }) {
@@ -23,6 +24,7 @@ function HomeScreen({ navigation }) {
         <View style={{ flex: 1, alignItems: 'center', flexDirection: 'row', justifyContent: 'center' }}>
             <Button title='Administrador' onPress={handleAdminPress}></Button>
             <Button title='Invitado' onPress={() => navigation.navigate('GroupGuest')}></Button>
+            <Button title='Envio' onPress={() => navigation.navigate('Test')}></Button>
         </View>
     );
 }
@@ -39,6 +41,7 @@ function App (){
             <Stack.Screen name="True" component={AdminView}/>
             <Stack.Screen name='GroupGuest' component={SelectGroupGuest}/>
             <Stack.Screen name='GroupAdmin' component={SelectGroupAdmin}/>
+            <Stack.Screen name ='Test' component={Test1}/>
           </Stack.Navigator>
         </NavigationContainer>
       );

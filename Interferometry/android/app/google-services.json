@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "450205088567",
+    "project_id": "focal-baton-401101",
+    "storage_bucket": "focal-baton-401101.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:450205088567:android:a1d51ef3c16199964538b2",
+        "android_client_info": {
+          "package_name": "com.interferometry"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCpJTLdO_8BM0IEGXnXPlURf2Y0CNCU6ok"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
