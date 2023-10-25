@@ -37,12 +37,12 @@ export const getCurrent = async (deviceUUID) => {
 
 export function MapGuest() {
 
-    messaging().onMessage(remoteMessage => {
+    /* messaging().onMessage(remoteMessage => {
         simulation().then(image => {
             setCurrentImage(image);
         })
         console.log("mensaje activo");
-    });
+    }); */
 
     /* const fetchImage = async () => {
         try {
@@ -117,8 +117,13 @@ export function MapGuest() {
         };
     
         continuousFetch();
+
+        const unsubscribe = messaging().onMessage( remoteMessage => {
+            simulation().then(setCurrentImage);
+            console.log("mensaje activo")
+        });
+        return unsubscribe;
     
-        // No hay necesidad de limpiar usando clearInterval ya que estamos usando setTimeout dentro de la función.
     }, []);
     return (
         <View style={styles.container}>

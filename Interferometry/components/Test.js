@@ -2,31 +2,30 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, Image } from 'react-native';
 import messaging from '@react-native-firebase/messaging';
 import { simulation } from '../services/deviceService';
-//import AsyncStorage from '@react-native-async-storage/async-storage';
-
-
-/* messaging().setBackgroundMessageHandler( async remoteMessage => {
-    console.log("notif");
-}); */
-
-/* async function requestUserPermission() {
-    const authStatus = await messaging().requestPermission();
-    const enabled =
-        authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
-        authStatus === messaging.AuthorizationStatus.PROVISIONAL;
-
-    if (enabled) {
-        console.log('Authorization status:', authStatus);
-    }e
-} */
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export function Test1({ navigation }) {
 
     const [currentImage, setCurrentImage] = useState(null);
 
     const fetchImage = async () => {
+        const storeGroupID = await AsyncStorage.getItem('selectedGroup');
+        const positions = await fetch(`http://10.0.2.2:8000/api/register/?actual_group=${storeGroupID}`);
+        const refPoint = await fetch(`http://10.0.2.2:8000/api/ref/${storeGroupID}/`);
+        const dataPos = await positions.json();
+        const dataRef = await refPoint.json();
         try {
-            const response = await fetch('http://10.0.2.2:8000/api/test2/');
+            const response = await fetch('http://10.0.2.2:8000/api/simulation/',
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        locations: dataPos,
+                        reference: dataRef,
+                    }),
+                });
             const blob = await response.blob();
             const reader = new FileReader();
             reader.readAsDataURL(blob);
@@ -40,26 +39,22 @@ export function Test1({ navigation }) {
     };
 
 
-    /* useEffect(() => {
+    useEffect(() => {
 
-        messaging().
-            getToken().
-            then(token => {
-                console.log("------------------")
-                console.log(token);
-                console.log("------------------")
-            });
-        // Esto maneja el mensaje cuando la aplicación está activa
-        const unsubscribe = messaging().onMessage( remoteMessage => {
-            fetchImage();
+        const unsubscribe = messaging().onMessage(remoteMessage => {
+            //fetchImage();
+            simulation().then(img => {
+                setCurrentImage(img);
+            })
+
             console.log("mensaje activo")
         });
         return unsubscribe;
-    }, []); */
+    }, []);
     return (
 
         <View style={{ flex: 1 }}>
-            {/* {currentImage && <Image source={{ uri: currentImage }} style={{ width: '100%', height: '100%' }} />} */}
+            {currentImage && <Image source={{ uri: currentImage }} style={{ width: '100%', height: '100%' }} />}
             <Text>Hola</Text>
         </View>
     );

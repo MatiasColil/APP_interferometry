@@ -1,6 +1,6 @@
 import { View, Text, Button, StyleSheet, Alert, Modal, TextInput } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
-import { fetchDevicePositions, simulation, sendRefPoint, sendDistance } from '../services/deviceService';
+import { fetchDevicePositions, callSimulation, sendRefPoint, sendDistance } from '../services/deviceService';
 import { useState, useEffect } from 'react';
 import Geolocation from '@react-native-community/geolocation';
 
@@ -160,7 +160,7 @@ export function AdminView() {
             {currentLocation && <Map devicePositions={devicePositions} onMapPress={handleMapPress} referencePoint={referencePoint} posAdmin={currentLocation} />}
             <View style={styles.button}>
                 <Button title="Definir punto de referencia" onPress={handleDefineReferencePoint} />
-                <Button title="Realizar simulación" onPress={simulation} />
+                <Button title="Realizar simulación" onPress={callSimulation} />
             </View>
         </View>
     );

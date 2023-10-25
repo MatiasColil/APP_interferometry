@@ -4,7 +4,7 @@ import uuid from 'react-native-uuid';
 export const simulation = async () => {
     const storeGroupID = await AsyncStorage.getItem('selectedGroup');
     const positions = await fetch(`http://10.0.2.2:8000/api/register/?actual_group=${storeGroupID}`);
-    const refPoint = await fetch(`http://10.0.2.2:8000/api/ref/${storeGroupID}`);
+    const refPoint = await fetch(`http://10.0.2.2:8000/api/ref/${storeGroupID}/`);
     const dataPos = await positions.json();
     const dataRef = await refPoint.json();
     try{
@@ -23,16 +23,34 @@ export const simulation = async () => {
         }
         else{
             const blob = await response.blob()
-            const reader = new FileReader();
-            reader.readAsDataURL(blob);
-            reader.onloadend = () => {
-                const base64data = reader.result;
-                return base64data;
-            }
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(blob);
+                reader.onloadend = () => {
+                    const base64data = reader.result;
+                    resolve(base64data);
+                };
+                reader.onerror = () => {
+                    reject(new Error("Error luego del blob"));
+                };
+            });
         }
 
     } catch (error){
         console.error("Error:", error);
+    }
+}
+
+export const callSimulation = async () => {
+    const storeGroupID = await AsyncStorage.getItem('selectedGroup');
+    try{
+        const response = await fetch(`http://10.0.2.2:8000/api/message/?actual_group=${storeGroupID}`)
+        if(response.ok){
+            const data = await response.json();
+            console.log(data);
+        }
+    } catch (error){
+        console.error("Error:", error)
     }
 }
 
