@@ -1,15 +1,15 @@
 import { View, Text, Button, StyleSheet, Alert, Modal, TextInput } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
-import { fetchDevicePositions, callSimulation, sendRefPoint, sendDistance } from '../services/deviceService';
+import { fetchDevicePositions, callSimulation, sendRefPoint, sendDistance, sendParameters, simulation } from '../services/deviceService';
 import { useState, useEffect } from 'react';
 import Geolocation from '@react-native-community/geolocation';
+import { CarouselImagesAdmin, CarouselImagesSimu } from './CarouselImages';
 
 function Map({ devicePositions, onMapPress, referencePoint, posAdmin }) {
 
     const [isModalVisible, setModalVisible] = useState(false);
     const [selectedDevice, setSelectedDevice] = useState(null);
     const [inputDistance, setInputDistance] = useState('');
-
     const handleMarkerPress = (device) => {
         setSelectedDevice(device);
         setModalVisible(true);
@@ -20,7 +20,6 @@ function Map({ devicePositions, onMapPress, referencePoint, posAdmin }) {
             ...selectedDevice,
             distance: parseFloat(inputDistance)
         };
-        console.log(updatedDevice);
         sendDistance(updatedDevice);
         setModalVisible(false);
     };
@@ -92,6 +91,14 @@ export function AdminView() {
     const [selectingReferencePoint, setSelectingReferencePoint] = useState(false);
     const [referencePoint, setReferencePoint] = useState(null);
     const [currentLocation, setCurrentLocation] = useState(null);
+    const [isSimulationModalVisible, setSimulationModalVisible] = useState(false);
+    const [activeImageId, setActiveImageId] = useState(null);
+    const [observationTime, setObservationTime] = useState('');
+    const [samplingTime, setSamplingTime] = useState('');
+    const [declination, setDeclination] = useState('');
+    const [simulatedImages, setSimulatedImages] = useState(null);
+    const [frequency, setFrequency] = useState('');
+    const [scale, setScale] = useState('');
 
     const getCurrent = async () => {
         return new Promise((resolve, reject) => {
@@ -146,6 +153,18 @@ export function AdminView() {
         }
     };
 
+    const formSimulation = () => {
+        setSimulationModalVisible(true);
+    };
+
+    const performSimulation = async () => {
+        const send = await sendParameters(observationTime, samplingTime, declination, activeImageId, frequency, scale);
+        const im = await simulation(observationTime, samplingTime, declination, frequency, scale, activeImageId);
+        setSimulatedImages(im);
+        await callSimulation();
+        setSimulationModalVisible(false);
+    };
+
     useEffect(() => {
         const intervalId = setInterval(() => {
             fetchDevicePositions().then(poss => {
@@ -157,19 +176,49 @@ export function AdminView() {
     }, [devicePositions]);
     return (
         <View style={styles.container}>
+            {simulatedImages ? (
+                <CarouselImagesSimu simImages={simulatedImages} ></CarouselImagesSimu>
+            ) : (
+                <CarouselImagesAdmin onActiveItemChange={setActiveImageId}></CarouselImagesAdmin>
+            )
+            }
             {currentLocation && <Map devicePositions={devicePositions} onMapPress={handleMapPress} referencePoint={referencePoint} posAdmin={currentLocation} />}
             <View style={styles.button}>
                 <Button title="Definir punto de referencia" onPress={handleDefineReferencePoint} />
-                <Button title="Realizar simulación" onPress={callSimulation} />
+                <Button title="Realizar simulación" onPress={formSimulation} />
             </View>
+            <Modal
+                animationType="slide"
+                transparent={true}
+                visible={isSimulationModalVisible}
+                onRequestClose={() => {
+                    setSimulationModalVisible(false);
+                }}
+            >
+                <View style={styles.centeredView}>
+                    <View style={styles.modalView}>
+                        <Text style={styles.modalText}>Realizar simulación</Text>
+
+                        <TextInput placeholder="Tiempo de observación en horas" style={styles.inputField} onChangeText={setObservationTime} />
+                        <TextInput placeholder="Tiempo de muestreo en minutos" style={styles.inputField} onChangeText={setSamplingTime} />
+                        <TextInput placeholder="Declinación en grados" style={styles.inputField} onChangeText={setDeclination} />
+                        <TextInput placeholder="Frecuencia en Gigahertz" style={styles.inputField} onChangeText={setFrequency} />
+                        <TextInput placeholder="Escala" style={styles.inputField} onChangeText={setScale} />
+
+                        <Text>ID de imagen activa: {activeImageId}</Text>
+                        <Button title="Cerrar" onPress={() => setSimulationModalVisible(false)} />
+                        <Button title='Iniciar simulación' onPress={performSimulation}></Button>
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
-}
+};
 
 const styles = StyleSheet.create({
     map: {
         width: '100%',
-        flex: 0.4,
+        flex: 0.3,
     },
     marker: {
         backgroundColor: 'red',
@@ -195,5 +244,33 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         marginBottom: 10,
         width: '100%'
+    },
+    centeredView: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    modalView: {
+        width: '80%',
+        backgroundColor: "white",
+        borderRadius: 20,
+        padding: 35,
+        alignItems: "center",
+        elevation: 5
+    },
+    modalText: {
+        marginBottom: 15,
+        textAlign: "center",
+        fontSize: 18,
+        fontWeight: 'bold'
+    },
+    inputField: {
+        width: '100%',
+        height: 40,
+        borderColor: 'gray',
+        borderWidth: 1,
+        marginBottom: 10,
+        paddingLeft: 10
     }
+
 });

@@ -10,7 +10,6 @@ function DeviceMap({ position, devicePositions, refPoint }) {
         latitudeDelta: 0.0000001,
         longitudeDelta: 0.0000001,
     };
-
     return (
         <>
             <MapView

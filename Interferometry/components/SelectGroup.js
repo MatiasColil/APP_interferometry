@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { FlatList, StyleSheet, Text, View, Button, Modal, TextInput } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { createNewGroup, fetchGroups } from "../services/deviceService";
+import { createNewGroup, fetchGroups, cleanGroup, deleteGroup } from "../services/deviceService";
 
 
 export function SelectGroupGuest({ navigation }) {
@@ -9,7 +9,8 @@ export function SelectGroupGuest({ navigation }) {
     const selectGroup = async (groupID) => {
         try {
             await AsyncStorage.setItem('selectedGroup', groupID.toString());
-            navigation.navigate('Map');
+            console.log(groupID);
+            navigation.navigate('Simulación');
         } catch (error) {
             console.error('Error al guardar el grupo seleccionado:', error);
         }
@@ -35,18 +36,19 @@ export function SelectGroupGuest({ navigation }) {
             )}
         />
     );
-
 }
 
 export function SelectGroupAdmin({ navigation }) {
     const [groups, setGroups] = useState([]);
     const [isModalVisible, setModalVisible] = useState(false);
     const [newGroupName, setNewGroupName] = useState('');
+    const [isModalVisibleClean, setModalVisibleClean] = useState(false);
+    const [isModalVisibleDelete, setModalVisibleDelete] = useState(false);
 
     const selectGroup = async (groupID) => {
         try {
             await AsyncStorage.setItem('selectedGroup', groupID.toString());
-            navigation.navigate('True');
+            navigation.navigate('Simulación administrador');
         } catch (error) {
             console.error('Error al guardar el grupo seleccionado:', error);
         }
@@ -55,7 +57,19 @@ export function SelectGroupAdmin({ navigation }) {
     const handleAddGroup = () => {
         createNewGroup(newGroupName);
         setModalVisible(false);
-        navigation.navigate('True');
+        navigation.navigate('Simulación administrador');
+    };
+
+    const handleCleanGroup = (groupID) => {
+        cleanGroup(groupID);
+        console.log("Limpiando grupo con ID:", groupID);
+        setModalVisibleClean(false);
+    };
+
+    const handleDeleteGroup = (groupID) => {
+        deleteGroup(groupID);
+        console.log("Eliminando grupo con ID:", groupID);
+        setModalVisibleDelete(false);
     };
 
     useEffect(() => {
@@ -86,7 +100,12 @@ export function SelectGroupAdmin({ navigation }) {
                     </View>
                 )}
             />
-            <Button title="Crear nuevo grupo" onPress={() => setModalVisible(true)} />
+            <View style={styles.buttonContainer}>
+                <Button title="Nuevo grupo" onPress={() => setModalVisible(true)} />
+                <Button title="Limpiar grupo" onPress={() => setModalVisibleClean(true)}></Button>
+                <Button title="Eliminar grupo" onPress={() => setModalVisibleDelete(true)}></Button>
+            </View>
+            
             <Modal
                 animationType="slide"
                 transparent={true}
@@ -105,6 +124,41 @@ export function SelectGroupAdmin({ navigation }) {
                     <Button title="Cancelar" onPress={() => setModalVisible(false)} />
                 </View>
             </Modal>
+
+            <Modal
+                animationType="slide"
+                transparent={true}
+                visible={isModalVisibleClean}
+                onRequestClose={() => {
+                    setModalVisibleClean(!isModalVisibleClean);
+                }}>
+                <View style={styles.modalView}>
+                    {groups.map((group) => (
+                        <Button key={group.id} title={`Limpiar ${group.Group}`} onPress={() => handleCleanGroup(group.id)} />
+                    ))}
+                    <View style={styles.modalButton}>
+                        <Button title="Atras" color={'grey'} onPress={() => setModalVisibleClean(false)}></Button>
+                    </View>
+                </View>
+            </Modal>
+
+            <Modal
+                animationType="slide"
+                transparent={true}
+                visible={isModalVisibleDelete}
+                onRequestClose={() => {
+                    setModalVisibleDelete(!isModalVisibleDelete);
+                }}>
+                <View style={styles.modalView}>
+                    {groups.map((group) => (
+                        <Button key={group.id} title={`Eliminar ${group.Group}`} onPress={() => handleDeleteGroup(group.id)} />
+                    ))}
+                    <View style={styles.modalButton}>
+                        <Button title="Atras" color={'grey'} onPress={() => setModalVisibleDelete(false)}></Button>
+                    </View>
+                </View>
+            </Modal>
+
         </View>
     )
 }
@@ -146,6 +200,10 @@ const styles = StyleSheet.create({
         backgroundColor: 'white',
         elevation: 5
     },
+    modalButton: {
+        marginTop: 30,
+
+    },
     input: {
         width: 200,
         height: 40,
@@ -162,5 +220,10 @@ const styles = StyleSheet.create({
     },
     groupName: {
         fontSize: 16,
+    },
+    buttonContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        padding: 10,
     },
 });

@@ -6,7 +6,6 @@ import { SelectGroupAdmin, SelectGroupGuest } from './components/SelectGroup';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { isTokenValid } from './services/deviceService';
-import { Test1 } from './components/Test'
 
 
 function HomeScreen({ navigation }) {
@@ -22,9 +21,8 @@ function HomeScreen({ navigation }) {
 
     return (
         <View style={{ flex: 1, alignItems: 'center', flexDirection: 'row', justifyContent: 'center' }}>
-            <Button title='Administrador' onPress={handleAdminPress}></Button>
-            <Button title='Invitado' onPress={() => navigation.navigate('GroupGuest')}></Button>
-            <Button title='Envio' onPress={() => navigation.navigate('Test')}></Button>
+            <Button title='Divulgador' onPress={handleAdminPress}></Button>
+            <Button title='Participante' onPress={() => navigation.navigate('Seleccionar grupo')}></Button>
         </View>
     );
 }
@@ -36,12 +34,11 @@ function App (){
         <NavigationContainer>
           <Stack.Navigator>
             <Stack.Screen name="Home" component={HomeScreen} />
-            <Stack.Screen name="Map" component={MapGuest} />
+            <Stack.Screen name="Simulación" component={MapGuest} />
             <Stack.Screen name="Login" component={LoginView}/>
-            <Stack.Screen name="True" component={AdminView}/>
-            <Stack.Screen name='GroupGuest' component={SelectGroupGuest}/>
+            <Stack.Screen name="Simulación administrador" component={AdminView}/>
+            <Stack.Screen name='Seleccionar grupo' component={SelectGroupGuest}/>
             <Stack.Screen name='GroupAdmin' component={SelectGroupAdmin}/>
-            <Stack.Screen name ='Test' component={Test1}/>
           </Stack.Navigator>
         </NavigationContainer>
       );

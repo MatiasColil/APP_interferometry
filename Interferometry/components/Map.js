@@ -1,10 +1,13 @@
 import Geolocation from '@react-native-community/geolocation';
-import { fetchDevicePositions, fetchOrGenerateUUID, simulation, sendToken, fetchReferencePoint, checkDeviceExists, sendPositionToServer } from '../services/deviceService'
+import {
+    fetchDevicePositions, fetchOrGenerateUUID, simulation, sendToken, fetchReferencePoint
+    , sendPositionToServer, fetchImages, fetchParameters
+} from '../services/deviceService'
 import { useState, useEffect } from 'react';
-import { StyleSheet, View, Image } from 'react-native';
-import DeviceMap from '../components/DeviceMap';
+import { StyleSheet, View, Image, Text } from 'react-native';
+import DeviceMap from './DeviceMap';
 import messaging from '@react-native-firebase/messaging';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { CarouselImagesGuest, CarouselImagesSimu } from './CarouselImages';
 
 
 export const getCurrent = async (deviceUUID) => {
@@ -34,60 +37,12 @@ export const getCurrent = async (deviceUUID) => {
     });
 };
 
-
 export function MapGuest() {
 
-    /* messaging().onMessage(remoteMessage => {
-        simulation().then(image => {
-            setCurrentImage(image);
-        })
-        console.log("mensaje activo");
-    }); */
-
-    /* const fetchImage = async () => {
-        try {
-            const response = await fetch('http://10.0.2.2:8000/api/test2/');
-            const blob = await response.blob();
-            const reader = new FileReader();
-            reader.readAsDataURL(blob);
-            reader.onloadend = () => {
-                const base64data = reader.result;
-                setCurrentImage(base64data);
-            };
-        } catch (error) {
-            console.error("Hubo un error al obtener la imagen:", error);
-        }
-    }; */
-
     const [devicePositions, setDevicePositions] = useState([]);
-
-    const [deviceUUID, setDeviceUUID] = useState(null);
-
+    const [simulatedImages, setSimulatedImages] = useState(null);
     const [position, setPosition] = useState(null);
-
-    const [currentImage, setCurrentImage] = useState(null);
     const [referencePoint, setReferencePoint] = useState(null);
-
-    /* useEffect(() => {
-        fetchOrGenerateUUID().then(uuid => {
-            messaging().getToken().then(token => {
-                sendToken(uuid, token);
-            });
-        });
-        const intervalId = setInterval(() => {
-            fetchOrGenerateUUID().then(uuid => {
-                setDeviceUUID(uuid);
-                getCurrent(uuid).then(setPosition);
-            });
-            fetchDevicePositions().then(poss => {
-                if (poss) setDevicePositions(poss);
-            });
-            fetchReferencePoint().then(point => {
-                if (point) setReferencePoint(point);
-            });
-        }, 3000);
-        return () => clearInterval(intervalId);
-    }, []); */
 
     useEffect(() => {
         const fetchData = async () => {
@@ -96,45 +51,51 @@ export function MapGuest() {
             await sendToken(uuid, token);
             return uuid;
         };
-    
+
         const continuousFetch = async () => {
             const uuid = await fetchData();
             while (true) {
                 try {
+                    await new Promise(resolve => setTimeout(resolve, 3000));
                     await getCurrent(uuid).then(setPosition);
                     const poss = await fetchDevicePositions();
                     if (poss) setDevicePositions(poss);
-    
+
                     const point = await fetchReferencePoint();
                     if (point) setReferencePoint(point);
-    
-                    // Pausa de 3 segundos antes de la siguiente iteración.
-                    await new Promise(resolve => setTimeout(resolve, 1000));
+
                 } catch (error) {
-                    console.error("Error during continuous fetch:", error);
+                    console.error("Error durante el bucle:", error);
                 }
             }
         };
-    
+
         continuousFetch();
 
-        const unsubscribe = messaging().onMessage( remoteMessage => {
-            simulation().then(setCurrentImage);
-            console.log("mensaje activo")
+        const unsubscribe = messaging().onMessage(async remoteMessage => {
+            const param = await fetchParameters();
+            const sim = await simulation(param.observationTime, param.samplingTime, param.declination, param.frequency, param.scale, param.idPath);
+            setSimulatedImages(sim);
+            console.log("Se realizó la simulación.")
         });
         return unsubscribe;
-    
+
     }, []);
     return (
         <View style={styles.container}>
-            <View style={styles.container2}>
-                {/* <DeviceList devicePositions={devicePositions} /> */}
-                {currentImage && <Image source={{ uri: currentImage }} style={{ width: '100%', height: '100%' }} />}
-            </View>
-            <DeviceMap position={position} devicePositions={devicePositions} refPoint={referencePoint} />
+            {simulatedImages ? (
+                <CarouselImagesSimu simImages={simulatedImages} ></CarouselImagesSimu>
+            ) : (
+                <CarouselImagesGuest></CarouselImagesGuest>
+            )}
+            <DeviceMap
+                position={position}
+                devicePositions={devicePositions}
+                refPoint={referencePoint}
+            />
         </View>
     );
-}
+};
 
 const styles = StyleSheet.create({
     container: {

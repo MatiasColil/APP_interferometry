@@ -34,7 +34,7 @@ export function LoginView({navigation}) {
         const checkAuth = async () => {
             const validToken = await isTokenValid();
             if (validToken) {
-                navigation.navigate('True');
+                navigation.navigate('Simulación administrador');
             }
         };
         

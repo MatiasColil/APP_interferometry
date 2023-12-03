@@ -1,58 +1,107 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import uuid from 'react-native-uuid';
 
-export const simulation = async () => {
+export const simulation = async (obsTime, samplingTime, declination, frequency, scale,activeImageId) => {
     const storeGroupID = await AsyncStorage.getItem('selectedGroup');
     const positions = await fetch(`http://10.0.2.2:8000/api/register/?actual_group=${storeGroupID}`);
     const refPoint = await fetch(`http://10.0.2.2:8000/api/ref/${storeGroupID}/`);
     const dataPos = await positions.json();
     const dataRef = await refPoint.json();
-    try{
+    try {
         const response = await fetch('http://10.0.2.2:8000/api/simulation/', {
             method: "POST",
-            headers:{
+            headers: {
                 'Content-Type': 'application/json',
             },
-            body:JSON.stringify({
-                locations : dataPos,
-                reference : dataRef,
+            body: JSON.stringify({
+                locations: dataPos,
+                reference: dataRef,
+                parameter: {
+                    "observationTime": obsTime,
+                    "declination": declination,
+                    "samplingTime": samplingTime,
+                    "frequency": frequency,
+                    "scale": scale,
+                    "idPath": activeImageId
+                }
             }),
         });
         if (!response.ok) {
-            throw new Error('Network response was not ok');
+            throw new Error('Error simulación.');
         }
-        else{
-            const blob = await response.blob()
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.readAsDataURL(blob);
-                reader.onloadend = () => {
-                    const base64data = reader.result;
-                    resolve(base64data);
-                };
-                reader.onerror = () => {
-                    reject(new Error("Error luego del blob"));
-                };
-            });
+        else {
+            const data = response.json();
+            return data;
         }
 
-    } catch (error){
+    } catch (error) {
         console.error("Error:", error);
     }
-}
+};
+
+export const sendParameters = async (obsTime, samplingTime, declination, activeImageId, frequency, scale) => {
+    const storeGroupID = await AsyncStorage.getItem('selectedGroup');
+    let exist = await checkParametersExist();
+    let metodo = exist ? 'PUT' : 'POST';
+    try {
+        const response = await fetch(`http://10.0.2.2:8000/api/parameters/${exist ? storeGroupID + "/" : ""}`, {
+            method: metodo,
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                observationTime: obsTime,
+                declination: declination,
+                samplingTime: samplingTime,
+                frequency:  frequency,
+                idPath: activeImageId,
+                groupId: storeGroupID,
+                scale: scale
+            }),
+        });
+        if (!response.ok) {
+            throw new Error('error envío de parametros');
+        }
+        else {
+            const data = response.json();
+            return data;
+        }
+
+    } catch (error) {
+        console.error("Error:", error);
+    }
+};
+
+export const fetchParameters = async () => {
+    try{
+        const storeGroupID = await AsyncStorage.getItem('selectedGroup');
+        const response = await fetch(`http://10.0.2.2:8000/api/parameters/${storeGroupID}/`);
+        if(response.ok){
+            const data = await response.json();
+            return data;
+        }
+        else{
+            console.log(response);
+            throw new Error('Error fetch parameters: ');
+        }
+    }
+    catch(error) {
+        console.error("error:", error);
+    }
+};
 
 export const callSimulation = async () => {
     const storeGroupID = await AsyncStorage.getItem('selectedGroup');
-    try{
+    try {
         const response = await fetch(`http://10.0.2.2:8000/api/message/?actual_group=${storeGroupID}`)
-        if(response.ok){
+        if (response.ok) {
             const data = await response.json();
             console.log(data);
         }
-    } catch (error){
+    } catch (error) {
         console.error("Error:", error)
     }
-}
+};
 
 export const fetchDevicePositions = async () => {
     try {
@@ -70,31 +119,32 @@ export const fetchReferencePoint = async () => {
     try {
         const storeGroupID = await AsyncStorage.getItem('selectedGroup');
         const response = await fetch(`http://10.0.2.2:8000/api/ref/${storeGroupID}/`);
-        if (response.ok){
+        if (response.ok) {
             const data = await response.json();
             return data
         }
-        else{
+        else {
             return null
         }
     } catch (error) {
-        console.error('Error al obtener posiciones:', error);
+        console.error('Error al obtener ref point:', error);
     }
-}
+};
 
 export const checkDeviceExists = async (uuid) => {
     try {
-        const response = await fetch(`http://10.0.2.2:8000/api/register/${uuid}/`);
+        const storeGroupID = await AsyncStorage.getItem('selectedGroup');
+        const response = await fetch(`http://10.0.2.2:8000/api/register/?device_id=${uuid}&actual_group=${storeGroupID}`);
         if (response.ok) {
             return true
         }
         if (response.status === 404) {
+            console.log("no encontro el device")
             return false;
         }
-        throw new Error('error');
     } catch (error) {
-        console.error("Error checking device existence:", error);
-        return false;
+        console.error("no encontro el device catch:", error);
+        return null;
     }
 };
 
@@ -108,17 +158,34 @@ export const checkRefPointExist = async () => {
         if (response.status === 404) {
             return false;
         }
-        throw new Error('error');
+        throw new Error('error check ref point');
     } catch (error) {
-        console.error("Error checking reference point existence:", error);
+        console.error("error checkeando ref point:", error);
+        return false;
+    }
+}
+
+export const checkParametersExist = async () => {
+    try {
+        const storeGroupID = await AsyncStorage.getItem('selectedGroup');
+        const response = await fetch(`http://10.0.2.2:8000/api/parameters/${storeGroupID}/`);
+        if (response.ok) {
+            return true
+        }
+        if (response.status === 404) {
+            return false;
+        }
+        throw new Error('error check parameters exist');
+    } catch (error) {
+        console.error("error checkeando parameter exist:", error);
         return false;
     }
 }
 
 export const sendDistance = async (entitie) => {
-    try{
+    try {
         const storeGroupID = await AsyncStorage.getItem('selectedGroup');
-        let string = `http://10.0.2.2:8000/api/register/${ entitie.device_id + "/"}`
+        let string = `http://10.0.2.2:8000/api/register/${entitie.device_id + "/"}`
         const response = await fetch(string, {
             method: 'PUT',
             headers: {
@@ -134,51 +201,61 @@ export const sendDistance = async (entitie) => {
             }),
         });
         if (!response.ok) {
-            throw new Error('Network response was not ok');
+            throw new Error('error enviando distancia');
         }
         console.log("Distancia actualizada")
     } catch (error) {
-        console.error("Error sending position:", error);
+        console.error("error enviando distancia catch:", error);
     }
 };
 
 export const sendToken = async (uuid, token) => {
-    try{
+    try {
         const storeGroupID = await AsyncStorage.getItem('selectedGroup');
-        let exist = await checkDeviceExists(uuid);
-        let metodo = exist ? 'PUT' : 'POST';
-        let string = `http://10.0.2.2:8000/api/register/${exist ? uuid + "/" : ""}`
-        const response = await fetch(string, {
-            method: metodo,
+        const response = await fetch(`http://10.0.2.2:8000/api/register/${uuid}/`, {
+            method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
                 device_id: uuid,
-                altitude: 0,
-                longitude: 0,
                 latitude: 0,
-                tokenFCM: token,
-                actual_group: storeGroupID
+                longitude: 0,
+                altitude: 0,
+                actual_group: storeGroupID,
+                tokenFCM: token
             }),
         });
+
         if (!response.ok) {
-            throw new Error('Network response was not ok');
+            const response2 = await fetch(`http://10.0.2.2:8000/api/register/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    device_id: uuid,
+                    latitude: 0,
+                    longitude: 0,
+                    altitude: 0,
+                    actual_group: storeGroupID,
+                    tokenFCM: token
+                }),
+            });
+            if (!response2.ok) {
+                console.log("error enviando token pos")
+            }
         }
-        //console.log("Token actualizado")
     } catch (error) {
-        console.error("Error sending position:", error);
+        console.error("Error enviando toke pos catch:", error);
     }
 };
 
 export const sendPositionToServer = async (uuid, position) => {
     try {
         const storeGroupID = await AsyncStorage.getItem('selectedGroup');
-        let exist = await checkDeviceExists(uuid);
-        let metodo = exist ? 'PUT' : 'POST';
-        let string = `http://10.0.2.2:8000/api/register/${exist ? uuid + "/" : ""}`
-        const response = await fetch(string, {
-            method: metodo,
+        const response = await fetch(`http://10.0.2.2:8000/api/register/${uuid}/`, {
+            method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
             },
@@ -190,14 +267,26 @@ export const sendPositionToServer = async (uuid, position) => {
                 actual_group: storeGroupID,
             }),
         });
-
         if (!response.ok) {
-            throw new Error('Network response was not ok');
+            const response2 = await fetch(`http://10.0.2.2:8000/api/register/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    device_id: uuid,
+                    latitude: position.latitude,
+                    longitude: position.longitude,
+                    altitude: position.altitude,
+                    actual_group: storeGroupID,
+                }),
+            });
+            if (!response2.ok) {
+                console.log("error enviando pos")
+            }
         }
-
-        //console.log("Position sent successfully");
     } catch (error) {
-        console.error("Error sending position:", error);
+        console.error("error enviando pos catch:", error);
     }
 };
 
@@ -249,18 +338,7 @@ export const fetchGroups = async () => {
         console.error('Error al obtener los grupos:', error);
         return null;
     }
-}
-
-export const fetchGroupID = async () => {
-    try {
-        const storeGroupID = await AsyncStorage.getItem('selectedGroup');
-        if (storeGroupID != null) {
-            return storeGroupID;
-        }
-    } catch (error) {
-        console.error("Error retrieving Group ID", error);
-    }
-}
+};
 
 export const createNewGroup = async (name) => {
     try {
@@ -278,15 +356,15 @@ export const createNewGroup = async (name) => {
             const data = await response.json()
             await AsyncStorage.removeItem('selectedGroup');
             await AsyncStorage.setItem('selectedGroup', data.id.toString());
-            console.log("Posición creada y guardada.")
+            console.log("Grupo creado.")
         }
         else {
-            throw new Error('Network response was not ok')
+            throw new Error('error creando grupo.')
         }
     } catch (error) {
         console.error("Error al crear el grupo: ", error);
     }
-}
+};
 
 export const sendRefPoint = async (refPoint) => {
     try {
@@ -308,11 +386,48 @@ export const sendRefPoint = async (refPoint) => {
         });
 
         if (!response.ok) {
-            throw new Error('Network response was not ok');
+            throw new Error('error enviando punto de referencia');
         }
-
-        console.log("Reference point sent successfully");
+        console.log("punto de referencia enviado");
     } catch (error) {
-        console.error("Error sending reference point:", error);
+        console.error("error enviando punto de referencia catch:", error);
     }
-}
+};
+
+export const cleanGroup = async (storeGroupID) => {
+    try {
+        const response = await fetch(`http://10.0.2.2:8000/api/register/delete_by_group/?actual_group=${storeGroupID}`, {
+            method: 'DELETE'
+        });
+        console.log("borro dispositivos del grupo")
+        if (!response.ok) {
+            throw new Error('Error limpiando grupo.')
+        }
+    } catch (error) {
+        console.error("error:", error)
+    }
+};
+
+export const deleteGroup = async (storeGroupID) => {
+    try {
+        const response = await fetch(`http://10.0.2.2:8000/api/groups/${storeGroupID}/`, {
+            method: 'DELETE'
+        });
+        if (!response.ok) {
+            throw new Error('Error al eliminar grupo.')
+        }
+    } catch (error) {
+        console.error("error:", error)
+    }
+};
+
+export const fetchImages = async () => {
+    try {
+        const response = await fetch('http://10.0.2.2:8000/api/imagenes/');
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error("error:", error);
+    }
+
+};
