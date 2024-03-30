@@ -23,7 +23,6 @@ function DeviceMap({ position, devicePositions, refPoint }) {
                             latitude: device.latitude,
                             longitude: device.longitude,
                         }}
-                        title={`Device ID: ${device.device_id}`}
                     >
                         <View style={styles.marker}></View>
                     </Marker>

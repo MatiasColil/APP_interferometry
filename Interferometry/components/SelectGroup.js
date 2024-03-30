@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { FlatList, StyleSheet, Text, View, Button, Modal, TextInput } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { createNewGroup, fetchGroups, cleanGroup, deleteGroup } from "../services/deviceService";
+import { createNewGroup, fetchGroups, cleanGroup, deleteGroup, sendToken } from "../services/deviceService";
 
 
 export function SelectGroupGuest({ navigation }) {
@@ -85,7 +85,7 @@ export function SelectGroupAdmin({ navigation }) {
                 keyExtractor={(item) => item.id.toString()}
                 ListHeaderComponent={() => (
                     <View style={styles.tableHeader}>
-                        <Text style={styles.headerText}>Nombre del grupo</Text>
+                        <Text style={styles.headerText} >Nombre del grupo</Text>
                         <Text style={styles.headerText}>Última vez utilizado (horas)</Text>
                         <View style={{ width: 100 }} />
                     </View>
@@ -115,13 +115,13 @@ export function SelectGroupAdmin({ navigation }) {
                 }}>
                 <View style={styles.modalView}>
                     <TextInput
-                        placeholder="Nombre del Grupo"
-                        value={newGroupName}
+                        placeholder=" Nombre del Grupo"
                         onChangeText={setNewGroupName}
                         style={styles.input}
+                        placeholderTextColor={'black'}
                     />
                     <Button title="Agregar" onPress={handleAddGroup} />
-                    <Button title="Cancelar" onPress={() => setModalVisible(false)} />
+                    <Button title="Cancelar" onPress={() => setModalVisible(false)} color={'gray'}/>
                 </View>
             </Modal>
 
@@ -176,7 +176,8 @@ const styles = StyleSheet.create({
     headerText: {
         flex: 1,
         fontWeight: 'bold',
-        fontSize: 16
+        fontSize: 16,
+        color:'black'
     },
     tableRow: {
         flexDirection: 'row',
@@ -187,10 +188,11 @@ const styles = StyleSheet.create({
     },
     tableDataContainer: {
         flexDirection: 'row',
-        flex: 1
+        flex: 1,
     },
     tableCell: {
-        flex: 1
+        flex: 1,
+        color:'black'
     },
     modalView: {
         flex: 1,
@@ -209,7 +211,8 @@ const styles = StyleSheet.create({
         height: 40,
         borderColor: 'gray',
         borderWidth: 1,
-        marginBottom: 10
+        marginBottom: 10,
+        color:'black'
     },
     listItem: {
         flexDirection: 'row',
@@ -220,6 +223,7 @@ const styles = StyleSheet.create({
     },
     groupName: {
         fontSize: 16,
+        color:'black'
     },
     buttonContainer: {
         flexDirection: 'row',

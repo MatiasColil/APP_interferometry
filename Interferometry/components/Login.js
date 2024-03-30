@@ -3,13 +3,13 @@ import { View, Button, StyleSheet, Text, TextInput } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { isTokenValid } from '../services/deviceService';
 
-export function LoginView({navigation}) {
+export function LoginView({ navigation }) {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
 
     const handleLogin = async () => {
         try {
-            const response = await fetch('http://10.0.2.2:8000/api/auth/', {
+            const response = await fetch('http://34.176.113.240:8000/api/auth/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -26,7 +26,7 @@ export function LoginView({navigation}) {
                 alert(errorData.detail);
             }
         } catch (error) {
-            console.error('Error:', error);
+            console.error('Error:', error, response);
         }
     };
 
@@ -37,7 +37,7 @@ export function LoginView({navigation}) {
                 navigation.navigate('Simulación administrador');
             }
         };
-        
+
         checkAuth();
     }, []);
 

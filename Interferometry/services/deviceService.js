@@ -1,41 +1,73 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import uuid from 'react-native-uuid';
+import messaging from '@react-native-firebase/messaging';
 
-export const simulation = async (obsTime, samplingTime, declination, frequency, scale,activeImageId) => {
+
+const API_BASE_URL = 'http://10.0.2.2:8000';
+//const API_BASE_URL ='http://191.233.240.49';
+
+
+export const simulation = async (obsTime, samplingTime, declination, frequency, scale, activeImageId) => {
     const storeGroupID = await AsyncStorage.getItem('selectedGroup');
-    const positions = await fetch(`http://10.0.2.2:8000/api/register/?actual_group=${storeGroupID}`);
-    const refPoint = await fetch(`http://10.0.2.2:8000/api/ref/${storeGroupID}/`);
-    const dataPos = await positions.json();
+
+    /* const positions = await fetch(API_BASE_URL + `/api/register/?actual_group=${storeGroupID}`);
+
+    if (positions.ok) {
+        console.log("fetch positions simulation 200")
+    }
+    else {
+        console.log("error fetch positions simulation")
+    } */
+
+    /* const refPoint = await fetch(API_BASE_URL + `/api/ref/${storeGroupID}/`);
+
+    if (refPoint.ok) {
+        console.log("fetch refpoints simulation 200")
+    }
+    else {
+        console.log("----------------")
+        console.log("error fetch ref points simulation")
+        console.log(refPoint)
+        console.log("----------------")
+    } */
+
+    /* const dataPos = await positions.json();
     const dataRef = await refPoint.json();
+    console.log("paso a json data simulacion") */
     try {
-        const response = await fetch('http://10.0.2.2:8000/api/simulation/', {
+        const response = await fetch(API_BASE_URL + '/api/simuadmin/', {
             method: "POST",
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                locations: dataPos,
-                reference: dataRef,
                 parameter: {
                     "observationTime": obsTime,
                     "declination": declination,
                     "samplingTime": samplingTime,
                     "frequency": frequency,
                     "scale": scale,
-                    "idPath": activeImageId
-                }
+                    "idPath": activeImageId,
+                },
+                "actual_group": storeGroupID
             }),
         });
         if (!response.ok) {
+            console.log("----------------")
+            console.log("response simulation error")
+            const data = await response.json();
+            console.log(data)
             throw new Error('Error simulación.');
         }
         else {
-            const data = response.json();
+            const data = await response.json();
             return data;
         }
 
     } catch (error) {
-        console.error("Error:", error);
+        console.log("----------------")
+        console.log(response)
+        console.error("Error simulación catch:", error);
     }
 };
 
@@ -44,7 +76,7 @@ export const sendParameters = async (obsTime, samplingTime, declination, activeI
     let exist = await checkParametersExist();
     let metodo = exist ? 'PUT' : 'POST';
     try {
-        const response = await fetch(`http://10.0.2.2:8000/api/parameters/${exist ? storeGroupID + "/" : ""}`, {
+        const response = await fetch(API_BASE_URL + `/api/parameters/${exist ? storeGroupID + "/" : ""}`, {
             method: metodo,
             headers: {
                 'Content-Type': 'application/json',
@@ -53,7 +85,7 @@ export const sendParameters = async (obsTime, samplingTime, declination, activeI
                 observationTime: obsTime,
                 declination: declination,
                 samplingTime: samplingTime,
-                frequency:  frequency,
+                frequency: frequency,
                 idPath: activeImageId,
                 groupId: storeGroupID,
                 scale: scale
@@ -63,51 +95,56 @@ export const sendParameters = async (obsTime, samplingTime, declination, activeI
             throw new Error('error envío de parametros');
         }
         else {
-            const data = response.json();
+            const data = await response.json();
+            console.log("send parameters 200")
             return data;
         }
 
     } catch (error) {
-        console.error("Error:", error);
+        console.error("Error send parameters:", error);
     }
 };
 
 export const fetchParameters = async () => {
-    try{
+    try {
         const storeGroupID = await AsyncStorage.getItem('selectedGroup');
-        const response = await fetch(`http://10.0.2.2:8000/api/parameters/${storeGroupID}/`);
-        if(response.ok){
+        const response = await fetch(API_BASE_URL + `/api/parameters/${storeGroupID}/`);
+        if (response.ok) {
             const data = await response.json();
+            console.log("retrieve parameters 200")
             return data;
         }
-        else{
+        else {
             console.log(response);
             throw new Error('Error fetch parameters: ');
         }
     }
-    catch(error) {
+    catch (error) {
         console.error("error:", error);
     }
 };
 
 export const callSimulation = async () => {
+
     const storeGroupID = await AsyncStorage.getItem('selectedGroup');
     try {
-        const response = await fetch(`http://10.0.2.2:8000/api/message/?actual_group=${storeGroupID}`)
+        const response = await fetch(API_BASE_URL + `/api/simulation/?actual_group=${storeGroupID}`)
         if (response.ok) {
             const data = await response.json();
-            console.log(data);
+            console.log("Simulación de invitados realizada correctamente.")
+            return data
         }
     } catch (error) {
-        console.error("Error:", error)
+        console.error("Error simulación invitados:", error)
     }
 };
 
 export const fetchDevicePositions = async () => {
     try {
         const storeGroupID = await AsyncStorage.getItem('selectedGroup');
-        const response = await fetch(`http://10.0.2.2:8000/api/register/?actual_group=${storeGroupID}`);
+        const response = await fetch(API_BASE_URL + `/api/register/?actual_group=${storeGroupID}`);
         const data = await response.json();
+        console.log("retrieve device positions 200")
         return data;
     } catch (error) {
         console.error('Error al obtener posiciones:', error);
@@ -118,9 +155,10 @@ export const fetchDevicePositions = async () => {
 export const fetchReferencePoint = async () => {
     try {
         const storeGroupID = await AsyncStorage.getItem('selectedGroup');
-        const response = await fetch(`http://10.0.2.2:8000/api/ref/${storeGroupID}/`);
+        const response = await fetch(API_BASE_URL + `/api/ref/${storeGroupID}/`);
         if (response.ok) {
             const data = await response.json();
+            console.log("retrieve refpoint 200")
             return data
         }
         else {
@@ -134,8 +172,9 @@ export const fetchReferencePoint = async () => {
 export const checkDeviceExists = async (uuid) => {
     try {
         const storeGroupID = await AsyncStorage.getItem('selectedGroup');
-        const response = await fetch(`http://10.0.2.2:8000/api/register/?device_id=${uuid}&actual_group=${storeGroupID}`);
+        const response = await fetch(API_BASE_URL + `/api/register/?device_id=${uuid}&actual_group=${storeGroupID}`);
         if (response.ok) {
+            console.log(`Se verifica que existe device para el grupo ${storeGroupID}$ con uuid: ${uuid}$`)
             return true
         }
         if (response.status === 404) {
@@ -151,8 +190,9 @@ export const checkDeviceExists = async (uuid) => {
 export const checkRefPointExist = async () => {
     try {
         const storeGroupID = await AsyncStorage.getItem('selectedGroup');
-        const response = await fetch(`http://10.0.2.2:8000/api/ref/${storeGroupID}/`);
+        const response = await fetch(API_BASE_URL + `/api/ref/${storeGroupID}/`);
         if (response.ok) {
+            console.log(`Se verifica que existe refpoint para el grupo ${storeGroupID}$`)
             return true
         }
         if (response.status === 404) {
@@ -168,8 +208,9 @@ export const checkRefPointExist = async () => {
 export const checkParametersExist = async () => {
     try {
         const storeGroupID = await AsyncStorage.getItem('selectedGroup');
-        const response = await fetch(`http://10.0.2.2:8000/api/parameters/${storeGroupID}/`);
+        const response = await fetch(API_BASE_URL + `/api/parameters/${storeGroupID}/`);
         if (response.ok) {
+            console.log(`Se verifica que existen parametros para el grupo ${storeGroupID}$`)
             return true
         }
         if (response.status === 404) {
@@ -185,7 +226,7 @@ export const checkParametersExist = async () => {
 export const sendDistance = async (entitie) => {
     try {
         const storeGroupID = await AsyncStorage.getItem('selectedGroup');
-        let string = `http://10.0.2.2:8000/api/register/${entitie.device_id + "/"}`
+        let string = API_BASE_URL + `/api/register/${entitie.device_id + "/"}`
         const response = await fetch(string, {
             method: 'PUT',
             headers: {
@@ -209,10 +250,12 @@ export const sendDistance = async (entitie) => {
     }
 };
 
-export const sendToken = async (uuid, token) => {
+export const sendToken = async () => {
     try {
+        const uuid = await fetchOrGenerateUUID();
+        const token = await messaging().getToken();
         const storeGroupID = await AsyncStorage.getItem('selectedGroup');
-        const response = await fetch(`http://10.0.2.2:8000/api/register/${uuid}/`, {
+        const response = await fetch(API_BASE_URL + `/api/register/${uuid}/`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
@@ -226,9 +269,8 @@ export const sendToken = async (uuid, token) => {
                 tokenFCM: token
             }),
         });
-
         if (!response.ok) {
-            const response2 = await fetch(`http://10.0.2.2:8000/api/register/`, {
+            const response2 = await fetch(API_BASE_URL + `/api/register/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -243,18 +285,18 @@ export const sendToken = async (uuid, token) => {
                 }),
             });
             if (!response2.ok) {
-                console.log("error enviando token pos")
+                console.log("Error creando dispositivo con UUID y TOKEN")
             }
         }
     } catch (error) {
-        console.error("Error enviando toke pos catch:", error);
+        console.error("Error actualizando dipositivo con UUID y TOKEN:", error);
     }
 };
 
-export const sendPositionToServer = async (uuid, position) => {
+/* export const sendPositionToServer = async (uuid, position) => {
     try {
         const storeGroupID = await AsyncStorage.getItem('selectedGroup');
-        const response = await fetch(`http://10.0.2.2:8000/api/register/${uuid}/`, {
+        const response = await fetch(API_BASE_URL + `/api/register/${uuid}/`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
@@ -265,10 +307,14 @@ export const sendPositionToServer = async (uuid, position) => {
                 longitude: position.longitude,
                 altitude: position.altitude,
                 actual_group: storeGroupID,
+                distance: 0
             }),
         });
+        if (response.ok) {
+            console.log("Se hizo un PUT (MODIFICAR) de posición dispositivo")
+        }
         if (!response.ok) {
-            const response2 = await fetch(`http://10.0.2.2:8000/api/register/`, {
+            const response2 = await fetch(API_BASE_URL + `/api/register/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -279,16 +325,20 @@ export const sendPositionToServer = async (uuid, position) => {
                     longitude: position.longitude,
                     altitude: position.altitude,
                     actual_group: storeGroupID,
+                    distance: 0
                 }),
             });
             if (!response2.ok) {
                 console.log("error enviando pos")
             }
+            else {
+                console.log("Se hizo un POST (CREAR) de posición dispositivo")
+            }
         }
     } catch (error) {
         console.error("error enviando pos catch:", error);
     }
-};
+}; */
 
 export const fetchOrGenerateUUID = async () => {
     try {
@@ -296,9 +346,11 @@ export const fetchOrGenerateUUID = async () => {
         if (storedUUID == null) {
             let newUUID = uuid.v4().toString();
             await AsyncStorage.setItem('deviceID', newUUID)
+            console.log("Se creo correctamente el token unico de dispositivo")
             return newUUID;
         }
         else {
+            console.log("Se restauro correctamente el token unico de dispositivo")
             return storedUUID;
         }
     } catch (error) {
@@ -313,8 +365,8 @@ export const isTokenValid = async () => {
         if (!token) {
             return false;
         }
-
-        const response = await fetch('http://10.0.2.2:8000/api/auth/verify/', {
+        console.log("verify token admin")
+        const response = await fetch(API_BASE_URL + '/api/auth/verify/', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -322,7 +374,15 @@ export const isTokenValid = async () => {
             body: JSON.stringify({ token: token })
         });
 
-        return response.ok;
+        if (response.ok) {
+            console.log("Se envió correctamente el token admin")
+            return true
+        }
+        else {
+            console.log("error token admin")
+            return false
+        }
+
     } catch (error) {
         console.error('Error verifying token:', error);
         return false;
@@ -331,8 +391,9 @@ export const isTokenValid = async () => {
 
 export const fetchGroups = async () => {
     try {
-        const response = await fetch('http://10.0.2.2:8000/api/groups/');
+        const response = await fetch(API_BASE_URL + '/api/groups/');
         const data = await response.json();
+        console.log("Se trajo correctamente los grupos")
         return data;
     } catch (error) {
         console.error('Error al obtener los grupos:', error);
@@ -342,7 +403,7 @@ export const fetchGroups = async () => {
 
 export const createNewGroup = async (name) => {
     try {
-        const response = await fetch('http://10.0.2.2:8000/api/groups/', {
+        const response = await fetch(API_BASE_URL + '/api/groups/', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -371,7 +432,7 @@ export const sendRefPoint = async (refPoint) => {
         const storeGroupID = await AsyncStorage.getItem('selectedGroup');
         let exist = await checkRefPointExist();
         let metodo = exist ? 'PUT' : 'POST';
-        let string = `http://10.0.2.2:8000/api/ref/${exist ? storeGroupID + "/" : ""}`
+        let string = API_BASE_URL + `/api/ref/${exist ? storeGroupID + "/" : ""}`
         const response = await fetch(string, {
             method: metodo,
             headers: {
@@ -396,38 +457,115 @@ export const sendRefPoint = async (refPoint) => {
 
 export const cleanGroup = async (storeGroupID) => {
     try {
-        const response = await fetch(`http://10.0.2.2:8000/api/register/delete_by_group/?actual_group=${storeGroupID}`, {
+        const response = await fetch(API_BASE_URL + `/api/register/delete_by_group/?actual_group=${storeGroupID}`, {
             method: 'DELETE'
         });
-        console.log("borro dispositivos del grupo")
         if (!response.ok) {
             throw new Error('Error limpiando grupo.')
         }
+        console.log("borro dispositivos del grupo")
     } catch (error) {
-        console.error("error:", error)
+        console.error("error clean grupos:", error)
     }
 };
 
 export const deleteGroup = async (storeGroupID) => {
     try {
-        const response = await fetch(`http://10.0.2.2:8000/api/groups/${storeGroupID}/`, {
+        const response = await fetch(API_BASE_URL + `/api/groups/${storeGroupID}/`, {
             method: 'DELETE'
         });
         if (!response.ok) {
             throw new Error('Error al eliminar grupo.')
         }
+        console.log("Se elimino correctamente el grupo")
     } catch (error) {
-        console.error("error:", error)
+        console.error("error delete:", error)
     }
 };
 
 export const fetchImages = async () => {
     try {
-        const response = await fetch('http://10.0.2.2:8000/api/imagenes/');
+        const response = await fetch(API_BASE_URL + '/api/imagenes/');
         const data = await response.json();
+        console.log("Se trajo correctamente las imagenes")
         return data;
     } catch (error) {
-        console.error("error:", error);
+        console.error("error fetch images:", error);
     }
 
+};
+
+export const login = async (username, password) => {
+    try {
+        const response = await fetch(API_BASE_URL + '/api/auth/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ username, password })
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            await AsyncStorage.setItem('accessToken', data.access);
+            return true;
+        } else {
+            const errorData = await response.json();
+            console.log(errorData.detail);
+            return false;
+        }
+    } catch (error) {
+        console.error('Error:', error, response);
+    }
+};
+
+export const sendPosition = async (latitude, longitude, altitude) => {
+    try {
+        const uuid = await fetchOrGenerateUUID();
+        const token = await messaging().getToken();
+        const storeGroupID = await AsyncStorage.getItem('selectedGroup');
+        const response = await fetch(API_BASE_URL + `/api/register/${uuid}/`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                device_id: uuid,
+                latitude: latitude,
+                longitude: longitude,
+                altitude: altitude,
+                actual_group: storeGroupID,
+                distance: 0,
+                tokenFCM:token,
+            }),
+        });
+        if (response.ok) {
+            console.log("Se hizo un PUT (MODIFICAR) de posición dispositivo")
+        }
+        if (!response.ok) {
+            const response2 = await fetch(API_BASE_URL + `/api/register/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    device_id: uuid,
+                    latitude: latitude,
+                    longitude: longitude,
+                    altitude: altitude,
+                    actual_group: storeGroupID,
+                    distance: 0,
+                    tokenFCM:token
+                }),
+            });
+            if (!response2.ok) {
+                console.log("Error creando datos de posisición del dispositivo (IF response2)")
+            }
+            else {
+                console.log("Se hizo un POST (CREAR) de posición dispositivo")
+            }
+        }
+    } catch (error) {
+        console.error("Error en modificación de posición del dispositivo. (CATCH)", error);
+    }
 };

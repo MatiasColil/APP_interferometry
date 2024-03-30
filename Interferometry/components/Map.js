@@ -1,84 +1,79 @@
 import Geolocation from '@react-native-community/geolocation';
 import {
-    fetchDevicePositions, fetchOrGenerateUUID, simulation, sendToken, fetchReferencePoint
-    , sendPositionToServer, fetchImages, fetchParameters
+    fetchDevicePositions, fetchReferencePoint
+    , sendPosition, callSimulation
 } from '../services/deviceService'
-import { useState, useEffect } from 'react';
-import { StyleSheet, View, Image, Text } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, View, Text } from 'react-native';
 import DeviceMap from './DeviceMap';
 import messaging from '@react-native-firebase/messaging';
 import { CarouselImagesGuest, CarouselImagesSimu } from './CarouselImages';
-
-
-export const getCurrent = async (deviceUUID) => {
-    return new Promise((resolve, reject) => {
-        Geolocation.getCurrentPosition(
-            (pos) => {
-                const newPosition = {
-                    latitude: pos.coords.latitude,
-                    longitude: pos.coords.longitude,
-                    altitude: pos.coords.altitude,
-                    latitudeDelta: 0.0000001,
-                    longitudeDelta: 0.0000001,
-                };
-                if (deviceUUID && newPosition) {
-                    sendPositionToServer(deviceUUID, newPosition);
-                }
-                resolve(newPosition);
-            },
-            (error) => {
-                reject(error);
-            },
-            {
-                maximumAge: 0,
-                enableHighAccuracy: true,
-            }
-        );
-    });
-};
 
 export function MapGuest() {
 
     const [devicePositions, setDevicePositions] = useState([]);
     const [simulatedImages, setSimulatedImages] = useState(null);
-    const [position, setPosition] = useState(null);
     const [referencePoint, setReferencePoint] = useState(null);
+    const [region, setRegion] = useState({
+        latitude: 0,
+        longitude: 0,
+        altitude: 0,
+        latitudeDelta: 0.0000001,
+        longitudeDelta: 0.0000001,
+    });
 
     useEffect(() => {
-        const fetchData = async () => {
-            const uuid = await fetchOrGenerateUUID();
-            const token = await messaging().getToken();
-            await sendToken(uuid, token);
-            return uuid;
-        };
 
         const continuousFetch = async () => {
-            const uuid = await fetchData();
             while (true) {
                 try {
                     await new Promise(resolve => setTimeout(resolve, 3000));
-                    await getCurrent(uuid).then(setPosition);
                     const poss = await fetchDevicePositions();
                     if (poss) setDevicePositions(poss);
-
                     const point = await fetchReferencePoint();
                     if (point) setReferencePoint(point);
 
                 } catch (error) {
-                    console.error("Error durante el bucle:", error);
+                    console.error("Error durante la obtención de los posiciones de los dispositivos.", error);
                 }
             }
         };
 
         continuousFetch();
 
+        const watchId = Geolocation.watchPosition(
+            (position) => {
+                const { latitude, longitude, altitude } = position.coords;
+                setRegion((prevRegion) => ({
+                    ...prevRegion,
+                    latitude,
+                    longitude,
+                    altitude,
+                }));
+                sendPosition(latitude, longitude, altitude);
+            },
+            (error) => {
+                console.error(error);
+            },
+            {
+                enableHighAccuracy: true,
+                distanceFilter: 0,
+                maximumAge: 1000,
+                interval: 4000
+            }
+        );
+
         const unsubscribe = messaging().onMessage(async remoteMessage => {
-            const param = await fetchParameters();
-            const sim = await simulation(param.observationTime, param.samplingTime, param.declination, param.frequency, param.scale, param.idPath);
-            setSimulatedImages(sim);
+            console.log("IMAGENES RECIBIDAS IMAGENES RECIBIDAS IMAGENES RECIBIDAS IMAGENES RECIBIDAS")
+            const images = await callSimulation();
+            setSimulatedImages(images);
             console.log("Se realizó la simulación.")
         });
-        return unsubscribe;
+
+        return () => {
+            Geolocation.clearWatch(watchId);
+            unsubscribe();
+        };
 
     }, []);
     return (
@@ -89,7 +84,7 @@ export function MapGuest() {
                 <CarouselImagesGuest></CarouselImagesGuest>
             )}
             <DeviceMap
-                position={position}
+                position={region}
                 devicePositions={devicePositions}
                 refPoint={referencePoint}
             />

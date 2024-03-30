@@ -10,19 +10,21 @@ function Map({ devicePositions, onMapPress, referencePoint, posAdmin }) {
     const [isModalVisible, setModalVisible] = useState(false);
     const [selectedDevice, setSelectedDevice] = useState(null);
     const [inputDistance, setInputDistance] = useState('');
-    const handleMarkerPress = (device) => {
+    
+    /* const handleMarkerPress = (device) => {
         setSelectedDevice(device);
-        setModalVisible(true);
-    };
+        setModalVisible(false);
+        navigator
+    }; */
 
-    const handleSave = () => {
+    /* const handleSave = () => {
         const updatedDevice = {
             ...selectedDevice,
             distance: parseFloat(inputDistance)
         };
         sendDistance(updatedDevice);
         setModalVisible(false);
-    };
+    }; */
 
     const initial = {
         latitude: referencePoint?.latitude || posAdmin.latitude,
@@ -47,8 +49,6 @@ function Map({ devicePositions, onMapPress, referencePoint, posAdmin }) {
                                 latitude: device.latitude,
                                 longitude: device.longitude,
                             }}
-                            title={`Device ID: ${device.device_id}`}
-                            onPress={() => handleMarkerPress(device)}
                         >
                             <View style={styles.marker}></View>
                         </Marker>
@@ -63,7 +63,7 @@ function Map({ devicePositions, onMapPress, referencePoint, posAdmin }) {
                 }
             </MapView>
 
-            <Modal
+            {/* <Modal
                 animationType="slide"
                 transparent={true}
                 visible={isModalVisible}
@@ -80,7 +80,7 @@ function Map({ devicePositions, onMapPress, referencePoint, posAdmin }) {
                         <Button title="Cancelar" onPress={() => setModalVisible(false)} />
                     </View>
                 </View>
-            </Modal>
+            </Modal> */}
 
         </>
     );
@@ -90,7 +90,6 @@ export function AdminView() {
     const [devicePositions, setDevicePositions] = useState([]);
     const [selectingReferencePoint, setSelectingReferencePoint] = useState(false);
     const [referencePoint, setReferencePoint] = useState(null);
-    const [currentLocation, setCurrentLocation] = useState(null);
     const [isSimulationModalVisible, setSimulationModalVisible] = useState(false);
     const [activeImageId, setActiveImageId] = useState(null);
     const [observationTime, setObservationTime] = useState('');
@@ -99,8 +98,15 @@ export function AdminView() {
     const [simulatedImages, setSimulatedImages] = useState(null);
     const [frequency, setFrequency] = useState('');
     const [scale, setScale] = useState('');
+    const [currentLocation, setCurrentLocation] = useState({
+        latitude: 0,
+        longitude: 0,
+        altitude: 0,
+        latitudeDelta: 0.0000001,
+        longitudeDelta: 0.0000001,
+    });
 
-    const getCurrent = async () => {
+    /* const getCurrent = async () => {
         return new Promise((resolve, reject) => {
             Geolocation.getCurrentPosition(
                 (pos) => {
@@ -122,7 +128,7 @@ export function AdminView() {
                 }
             );
         });
-    };
+    }; */
 
     const handleDefineReferencePoint = () => {
         setSelectingReferencePoint(true);
@@ -159,21 +165,53 @@ export function AdminView() {
 
     const performSimulation = async () => {
         const send = await sendParameters(observationTime, samplingTime, declination, activeImageId, frequency, scale);
-        const im = await simulation(observationTime, samplingTime, declination, frequency, scale, activeImageId);
-        setSimulatedImages(im);
-        await callSimulation();
+        const sim = await simulation(observationTime, samplingTime, declination, frequency, scale, activeImageId);
+        setSimulatedImages(sim);
         setSimulationModalVisible(false);
     };
 
     useEffect(() => {
-        const intervalId = setInterval(() => {
-            fetchDevicePositions().then(poss => {
-                if (poss) setDevicePositions(poss);
-            });
-            getCurrent().then(setCurrentLocation);
-        }, 1000);
-        return () => clearInterval(intervalId);
-    }, [devicePositions]);
+
+        const watchId = Geolocation.watchPosition(
+            (position) => {
+                const { latitude, longitude, altitude } = position.coords;
+                setCurrentLocation((prevRegion) => ({
+                    ...prevRegion,
+                    latitude,
+                    longitude,
+                    altitude,
+                }));
+            },
+            (error) => {
+                console.error(error);
+            },
+            {
+                enableHighAccuracy: true,
+                distanceFilter: 0,
+                maximumAge: 1000,
+                interval: 4000
+            }
+        );
+
+        const continuousFetch = async () => {
+            while (true) {
+                try {
+                    await new Promise(resolve => setTimeout(resolve, 3000));
+                    const poss = await fetchDevicePositions();
+                    if (poss) setDevicePositions(poss);
+
+                } catch (error) {
+                    console.error("Error durante la obtención de los posiciones de los dispositivos.", error);
+                }
+            }
+        };
+
+        continuousFetch();
+
+        return () => {
+            Geolocation.clearWatch(watchId);
+        };
+    }, []);
     return (
         <View style={styles.container}>
             {simulatedImages ? (
@@ -182,7 +220,10 @@ export function AdminView() {
                 <CarouselImagesAdmin onActiveItemChange={setActiveImageId}></CarouselImagesAdmin>
             )
             }
-            {currentLocation && <Map devicePositions={devicePositions} onMapPress={handleMapPress} referencePoint={referencePoint} posAdmin={currentLocation} />}
+            {currentLocation && <Map devicePositions={devicePositions}
+            onMapPress={handleMapPress} 
+            referencePoint={referencePoint} 
+            posAdmin={currentLocation} />}
             <View style={styles.button}>
                 <Button title="Definir punto de referencia" onPress={handleDefineReferencePoint} />
                 <Button title="Realizar simulación" onPress={formSimulation} />
@@ -199,13 +240,13 @@ export function AdminView() {
                     <View style={styles.modalView}>
                         <Text style={styles.modalText}>Realizar simulación</Text>
 
-                        <TextInput placeholder="Tiempo de observación en horas" style={styles.inputField} onChangeText={setObservationTime} />
-                        <TextInput placeholder="Tiempo de muestreo en minutos" style={styles.inputField} onChangeText={setSamplingTime} />
-                        <TextInput placeholder="Declinación en grados" style={styles.inputField} onChangeText={setDeclination} />
-                        <TextInput placeholder="Frecuencia en Gigahertz" style={styles.inputField} onChangeText={setFrequency} />
-                        <TextInput placeholder="Escala" style={styles.inputField} onChangeText={setScale} />
+                        <TextInput placeholder="Tiempo de observación en horas" placeholderTextColor={'black'} style={styles.inputField} onChangeText={setObservationTime} />
+                        <TextInput placeholder="Tiempo de muestreo en minutos" placeholderTextColor={'black'} style={styles.inputField} onChangeText={setSamplingTime} />
+                        <TextInput placeholder="Declinación en grados" placeholderTextColor={'black'} style={styles.inputField} onChangeText={setDeclination} />
+                        <TextInput placeholder="Frecuencia en Gigahertz" placeholderTextColor={'black'} style={styles.inputField} onChangeText={setFrequency} />
+                        <TextInput placeholder="Escala" placeholderTextColor={'black'} style={styles.inputField} onChangeText={setScale} />
 
-                        <Text>ID de imagen activa: {activeImageId}</Text>
+                        <Text style={{color: 'black'}} >ID de imagen activa: {activeImageId}</Text>
                         <Button title="Cerrar" onPress={() => setSimulationModalVisible(false)} />
                         <Button title='Iniciar simulación' onPress={performSimulation}></Button>
                     </View>
@@ -270,7 +311,8 @@ const styles = StyleSheet.create({
         borderColor: 'gray',
         borderWidth: 1,
         marginBottom: 10,
-        paddingLeft: 10
+        paddingLeft: 10,
+        color: 'black'
     }
 
 });
