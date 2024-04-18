@@ -43,6 +43,7 @@ const styles = StyleSheet.create({
     map: {
         width: '100%',
         flex: 0.4,
+        height: '100%',
     },
     marker: {
         backgroundColor: 'red',

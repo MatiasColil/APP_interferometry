@@ -39,7 +39,7 @@ function HomeScreen({ navigation }) {
         <View style={{ flex: 1, alignItems: 'center', flexDirection: 'row', justifyContent: 'center' }}>
             <Button title='Administrador' onPress={handleModal}></Button>
             <Button title='Participante' onPress={() => navigation.navigate('Seleccionar grupo')}></Button>
-            <Button title='Test' onPress={() => navigation.navigate('Test')} ></Button>
+            {/* <Button title='Test' onPress={() => navigation.navigate('Test')} ></Button> */}
             <Modal
                 animationType="slide"
                 transparent={true}
@@ -74,7 +74,7 @@ function App() {
                 <Stack.Screen name="Simulación administrador" component={AdminView} />
                 <Stack.Screen name='Seleccionar grupo' component={SelectGroupGuest} />
                 <Stack.Screen name='GroupAdmin' component={SelectGroupAdmin} />
-                <Stack.Screen name='Test' component={Test} />
+                {/* <Stack.Screen name='Test' component={Test} /> */}
             </Stack.Navigator>
         </NavigationContainer>
 

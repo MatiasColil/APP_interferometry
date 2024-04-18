@@ -1,19 +1,11 @@
-import Geolocation from '@react-native-community/geolocation';
-import {
-    fetchDevicePositions, fetchReferencePoint
-    , sendPosition, callSimulation
-} from '../services/deviceService'
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text } from 'react-native';
-import DeviceMap from './DeviceMap';
-import messaging from '@react-native-firebase/messaging';
-import { CarouselImagesGuest, CarouselImagesSimu } from './CarouselImages';
+import { View, StyleSheet } from 'react-native';
+import MapView, { Marker } from 'react-native-maps';
+import Geolocation from '@react-native-community/geolocation';
+import { CarouselImagesGuest } from './CarouselImages';
+import { sent, fetchDevicePositions, fetchReferencePoint } from '../services/deviceService';
 
-export function MapGuest() {
-
-    const [devicePositions, setDevicePositions] = useState([]);
-    const [simulatedImages, setSimulatedImages] = useState(null);
-    const [referencePoint, setReferencePoint] = useState(null);
+const Map = () => {
     const [region, setRegion] = useState({
         latitude: 0,
         longitude: 0,
@@ -21,6 +13,9 @@ export function MapGuest() {
         latitudeDelta: 0.0000001,
         longitudeDelta: 0.0000001,
     });
+    const [devicePositions, setDevicePositions] = useState([]);
+    const [referencePoint, setReferencePoint] = useState(null);
+
 
     useEffect(() => {
 
@@ -50,7 +45,8 @@ export function MapGuest() {
                     longitude,
                     altitude,
                 }));
-                sendPosition(latitude, longitude, altitude);
+                //console.log(position.coords)
+                sent(latitude, longitude, altitude);
             },
             (error) => {
                 console.error(error);
@@ -63,35 +59,49 @@ export function MapGuest() {
             }
         );
 
-        const unsubscribe = messaging().onMessage(async remoteMessage => {
-            console.log("------------------------------------")
-            console.log("IMAGENES RECIBIDAS IMAGENES RECIBIDAS IMAGENES RECIBIDAS IMAGENES RECIBIDAS")
-            const images = await callSimulation();
-            setSimulatedImages(images);
-            console.log("Se realizó la simulación.")
-            console.log("------------------------------------")
-        });
 
         return () => {
             Geolocation.clearWatch(watchId);
-            unsubscribe();
         };
-
     }, []);
+
+    return (
+        <MapView
+            style={styles.map}
+            initialRegion={region}
+            region={region}
+            showsUserLocation={false}
+            followsUserLocation={false}
+        >
+            {devicePositions.map(device => (
+                <Marker
+                    key={device.device_id}
+                    coordinate={{
+                        latitude: device.latitude,
+                        longitude: device.longitude,
+                    }}
+                >
+                    <View style={styles.marker}></View>
+                </Marker>
+            ))}
+            {/* <Marker coordinate={region} title="Mi Posición" pinColor="green" /> */}
+        </MapView>
+    );
+
+}
+
+export function Test() {
+
     return (
         <View style={styles.container}>
-            {simulatedImages ? (
-                <CarouselImagesSimu simImages={simulatedImages} ></CarouselImagesSimu>
-            ) : (
+            {(
                 <CarouselImagesGuest></CarouselImagesGuest>
             )}
-            <DeviceMap
-                position={region}
-                devicePositions={devicePositions}
-                refPoint={referencePoint}
-            />
+
+            <Map></Map>
+
         </View>
-    );
+    )
 };
 
 const styles = StyleSheet.create({
@@ -100,5 +110,20 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         backgroundColor: 'white',
-    }
+    },
+    container2: {
+        flex: 0.6,
+        borderColor: 'black',
+        borderWidth: 2,
+        width: '100%'
+    },
+    map: {
+        width: '100%',
+        flex: 0.3,
+    },
+    marker: {
+        backgroundColor: 'red',
+        padding: 2,
+        borderRadius: 10
+    },
 })

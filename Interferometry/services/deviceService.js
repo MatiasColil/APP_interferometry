@@ -3,38 +3,17 @@ import uuid from 'react-native-uuid';
 import messaging from '@react-native-firebase/messaging';
 
 
-const API_BASE_URL = 'http://10.0.2.2:8000';
-//const API_BASE_URL ='http://191.233.240.49';
+//const API_BASE_URL = 'http://10.0.2.2:8000';
+const API_BASE_URL ='http://www.interferometryapp.com';
 
 
-export const simulation = async (obsTime, samplingTime, declination, frequency, scale, activeImageId) => {
+export const simulation = async (obsTime, samplingTime, declination, frequency, scale, activeImageId, scheme, robust_param) => {
     const storeGroupID = await AsyncStorage.getItem('selectedGroup');
 
-    /* const positions = await fetch(API_BASE_URL + `/api/register/?actual_group=${storeGroupID}`);
-
-    if (positions.ok) {
-        console.log("fetch positions simulation 200")
-    }
-    else {
-        console.log("error fetch positions simulation")
-    } */
-
-    /* const refPoint = await fetch(API_BASE_URL + `/api/ref/${storeGroupID}/`);
-
-    if (refPoint.ok) {
-        console.log("fetch refpoints simulation 200")
-    }
-    else {
-        console.log("----------------")
-        console.log("error fetch ref points simulation")
-        console.log(refPoint)
-        console.log("----------------")
-    } */
-
-    /* const dataPos = await positions.json();
-    const dataRef = await refPoint.json();
-    console.log("paso a json data simulacion") */
     try {
+        console.log("-------------------------------------------------------")
+        console.log(scheme)
+        console.log("-------------------------------------------------------")
         const response = await fetch(API_BASE_URL + '/api/simuadmin/', {
             method: "POST",
             headers: {
@@ -48,6 +27,8 @@ export const simulation = async (obsTime, samplingTime, declination, frequency, 
                     "frequency": frequency,
                     "scale": scale,
                     "idPath": activeImageId,
+                    "scheme": scheme,
+                    "robust_param": robust_param
                 },
                 "actual_group": storeGroupID
             }),
@@ -61,17 +42,16 @@ export const simulation = async (obsTime, samplingTime, declination, frequency, 
         }
         else {
             const data = await response.json();
+            console.log("error simulacion admin")
             return data;
         }
 
     } catch (error) {
-        console.log("----------------")
-        console.log(response)
         console.error("Error simulación catch:", error);
     }
 };
 
-export const sendParameters = async (obsTime, samplingTime, declination, activeImageId, frequency, scale) => {
+export const sendParameters = async (obsTime, samplingTime, declination, activeImageId, frequency, scale, scheme, robust_param) => {
     const storeGroupID = await AsyncStorage.getItem('selectedGroup');
     let exist = await checkParametersExist();
     let metodo = exist ? 'PUT' : 'POST';
@@ -88,7 +68,9 @@ export const sendParameters = async (obsTime, samplingTime, declination, activeI
                 frequency: frequency,
                 idPath: activeImageId,
                 groupId: storeGroupID,
-                scale: scale
+                scale: scale,
+                scheme: scheme,
+                robust_param: robust_param
             }),
         });
         if (!response.ok) {
@@ -292,53 +274,6 @@ export const sendToken = async () => {
         console.error("Error actualizando dipositivo con UUID y TOKEN:", error);
     }
 };
-
-/* export const sendPositionToServer = async (uuid, position) => {
-    try {
-        const storeGroupID = await AsyncStorage.getItem('selectedGroup');
-        const response = await fetch(API_BASE_URL + `/api/register/${uuid}/`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                device_id: uuid,
-                latitude: position.latitude,
-                longitude: position.longitude,
-                altitude: position.altitude,
-                actual_group: storeGroupID,
-                distance: 0
-            }),
-        });
-        if (response.ok) {
-            console.log("Se hizo un PUT (MODIFICAR) de posición dispositivo")
-        }
-        if (!response.ok) {
-            const response2 = await fetch(API_BASE_URL + `/api/register/`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    device_id: uuid,
-                    latitude: position.latitude,
-                    longitude: position.longitude,
-                    altitude: position.altitude,
-                    actual_group: storeGroupID,
-                    distance: 0
-                }),
-            });
-            if (!response2.ok) {
-                console.log("error enviando pos")
-            }
-            else {
-                console.log("Se hizo un POST (CREAR) de posición dispositivo")
-            }
-        }
-    } catch (error) {
-        console.error("error enviando pos catch:", error);
-    }
-}; */
 
 export const fetchOrGenerateUUID = async () => {
     try {
@@ -567,5 +502,28 @@ export const sendPosition = async (latitude, longitude, altitude) => {
         }
     } catch (error) {
         console.error("Error en modificación de posición del dispositivo. (CATCH)", error);
+    }
+};
+
+export const handleLogin = async (username, password) => {
+    try {
+        const response = await fetch(API_BASE_URL + `/api/auth/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ username, password })
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            await AsyncStorage.setItem('accessToken', data.access);
+            navigation.navigate('GroupAdmin');
+        } else {
+            const errorData = await response.json();
+            alert(errorData.detail);
+        }
+    } catch (error) {
+        console.error('Error:', error, response);
     }
 };
