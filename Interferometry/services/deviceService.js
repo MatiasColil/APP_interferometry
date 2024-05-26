@@ -3,17 +3,30 @@ import uuid from 'react-native-uuid';
 import messaging from '@react-native-firebase/messaging';
 
 
-//const API_BASE_URL = 'http://10.0.2.2:8000';
-const API_BASE_URL ='http://www.interferometryapp.com';
+const API_BASE_URL = 'http://10.0.2.2:8000';
+//const API_BASE_URL ='http://www.interferometryapp.com';
+
+
+/* 
+
+Función que realiza el llamado a la API para realizar la simulación para el divulgador.
+
+obstime: tiempo de observación en horas
+sampling time: tiempo de muestreo en minutos
+declination: declinación en grados
+frequency: frecuencia en ghz
+scale: escala en metros
+active image id: id de la imagen activa
+scheme: esquema de ponderación
+robust_param: en caso de elegir robust, valor numerico entre -2 y 2
+
+*/
 
 
 export const simulation = async (obsTime, samplingTime, declination, frequency, scale, activeImageId, scheme, robust_param) => {
     const storeGroupID = await AsyncStorage.getItem('selectedGroup');
 
     try {
-        console.log("-------------------------------------------------------")
-        console.log(scheme)
-        console.log("-------------------------------------------------------")
         const response = await fetch(API_BASE_URL + '/api/simuadmin/', {
             method: "POST",
             headers: {
@@ -34,10 +47,7 @@ export const simulation = async (obsTime, samplingTime, declination, frequency, 
             }),
         });
         if (!response.ok) {
-            console.log("----------------")
-            console.log("response simulation error")
             const data = await response.json();
-            console.log(data)
             throw new Error('Error simulación.');
         }
         else {
@@ -51,6 +61,22 @@ export const simulation = async (obsTime, samplingTime, declination, frequency, 
     }
 };
 
+
+/* 
+
+Función que realiza el envío de parametros a la base de datos para luego ser usados en la simulación.
+
+obstime: tiempo de observación en horas
+sampling time: tiempo de muestreo en minutos
+declination: declinación en grados
+frequency: frecuencia en ghz
+scale: escala en metros
+active image id: id de la imagen activa
+scheme: esquema de ponderación
+robust_param: en caso de elegir robust, valor numerico entre -2 y 2
+
+
+*/
 export const sendParameters = async (obsTime, samplingTime, declination, activeImageId, frequency, scale, scheme, robust_param) => {
     const storeGroupID = await AsyncStorage.getItem('selectedGroup');
     let exist = await checkParametersExist();
@@ -87,24 +113,14 @@ export const sendParameters = async (obsTime, samplingTime, declination, activeI
     }
 };
 
-export const fetchParameters = async () => {
-    try {
-        const storeGroupID = await AsyncStorage.getItem('selectedGroup');
-        const response = await fetch(API_BASE_URL + `/api/parameters/${storeGroupID}/`);
-        if (response.ok) {
-            const data = await response.json();
-            console.log("retrieve parameters 200")
-            return data;
-        }
-        else {
-            console.log(response);
-            throw new Error('Error fetch parameters: ');
-        }
-    }
-    catch (error) {
-        console.error("error:", error);
-    }
-};
+
+/* 
+
+Función que hace el llamado a la simulación para el tipo de usuario participante y para un tipo de grupo especifico. Se activa una vez recibe la notificación
+por parte de la API.
+
+*/
+
 
 export const callSimulation = async () => {
 
@@ -121,6 +137,13 @@ export const callSimulation = async () => {
     }
 };
 
+/* 
+
+Función que trae las posiciones actuales de los dispositivos de un grupo especifico.
+
+*/
+
+
 export const fetchDevicePositions = async () => {
     try {
         const storeGroupID = await AsyncStorage.getItem('selectedGroup');
@@ -133,6 +156,12 @@ export const fetchDevicePositions = async () => {
         return null;
     }
 };
+
+/* 
+
+Función que trae el punto de referencia de un grupo especifico.
+
+*/
 
 export const fetchReferencePoint = async () => {
     try {
@@ -151,7 +180,9 @@ export const fetchReferencePoint = async () => {
     }
 };
 
-export const checkDeviceExists = async (uuid) => {
+
+
+/* export const checkDeviceExists = async (uuid) => {
     try {
         const storeGroupID = await AsyncStorage.getItem('selectedGroup');
         const response = await fetch(API_BASE_URL + `/api/register/?device_id=${uuid}&actual_group=${storeGroupID}`);
@@ -168,6 +199,14 @@ export const checkDeviceExists = async (uuid) => {
         return null;
     }
 };
+ */
+
+
+/* 
+
+Función que verifica si ya existe un punto de referencia para un grupo especifico.
+
+*/
 
 export const checkRefPointExist = async () => {
     try {
@@ -187,6 +226,13 @@ export const checkRefPointExist = async () => {
     }
 }
 
+/* 
+
+Función que verfica si ya existen parametros de simulación para un grupo especifico.
+
+*/
+
+
 export const checkParametersExist = async () => {
     try {
         const storeGroupID = await AsyncStorage.getItem('selectedGroup');
@@ -205,7 +251,8 @@ export const checkParametersExist = async () => {
     }
 }
 
-export const sendDistance = async (entitie) => {
+
+/* export const sendDistance = async (entitie) => {
     try {
         const storeGroupID = await AsyncStorage.getItem('selectedGroup');
         let string = API_BASE_URL + `/api/register/${entitie.device_id + "/"}`
@@ -231,6 +278,13 @@ export const sendDistance = async (entitie) => {
         console.error("error enviando distancia catch:", error);
     }
 };
+ */
+
+/* 
+
+Función que envía el token FCM a la DB para un dispositivo en especifico.
+
+*/
 
 export const sendToken = async () => {
     try {
@@ -275,6 +329,13 @@ export const sendToken = async () => {
     }
 };
 
+/* 
+
+Funcion que recupera o genera el UUID de un dispositivo.
+
+*/
+
+
 export const fetchOrGenerateUUID = async () => {
     try {
         const storedUUID = await AsyncStorage.getItem('deviceID');
@@ -292,6 +353,13 @@ export const fetchOrGenerateUUID = async () => {
         console.error("Error retrieving UUID:", error);
     }
 };
+
+/* 
+
+Función que verifica si el token de acceso como divulgador sigue activo.
+
+*/
+
 
 export const isTokenValid = async () => {
     try {
@@ -324,6 +392,13 @@ export const isTokenValid = async () => {
     }
 };
 
+
+/* 
+
+Función que trae los grupos activos.
+
+*/
+
 export const fetchGroups = async () => {
     try {
         const response = await fetch(API_BASE_URL + '/api/groups/');
@@ -336,6 +411,12 @@ export const fetchGroups = async () => {
     }
 };
 
+
+/* 
+
+Función que crea un nuevo grupo.
+
+*/
 export const createNewGroup = async (name) => {
     try {
         const response = await fetch(API_BASE_URL + '/api/groups/', {
@@ -361,6 +442,12 @@ export const createNewGroup = async (name) => {
         console.error("Error al crear el grupo: ", error);
     }
 };
+
+/* 
+
+Función que actualiza o crea el punto de referencia en la DB de un grupo en especifico.
+
+*/
 
 export const sendRefPoint = async (refPoint) => {
     try {
@@ -390,6 +477,12 @@ export const sendRefPoint = async (refPoint) => {
     }
 };
 
+/* 
+
+Función que limpia un grupo de todos los dispositivos que tiene asociado.
+
+*/
+
 export const cleanGroup = async (storeGroupID) => {
     try {
         const response = await fetch(API_BASE_URL + `/api/register/delete_by_group/?actual_group=${storeGroupID}`, {
@@ -403,6 +496,13 @@ export const cleanGroup = async (storeGroupID) => {
         console.error("error clean grupos:", error)
     }
 };
+
+
+/* 
+
+Función que elimina en grupo.
+
+*/
 
 export const deleteGroup = async (storeGroupID) => {
     try {
@@ -418,6 +518,13 @@ export const deleteGroup = async (storeGroupID) => {
     }
 };
 
+
+/* 
+
+Función que trae las imagenes modelo.
+
+*/
+
 export const fetchImages = async () => {
     try {
         const response = await fetch(API_BASE_URL + '/api/imagenes/');
@@ -430,6 +537,12 @@ export const fetchImages = async () => {
 
 };
 
+
+/* 
+
+Función que realiza el inicio de sesión.
+
+*/
 export const login = async (username, password) => {
     try {
         const response = await fetch(API_BASE_URL + '/api/auth/', {
@@ -453,6 +566,13 @@ export const login = async (username, password) => {
         console.error('Error:', error, response);
     }
 };
+
+
+/* 
+
+Función que envía la posición actual del dispositivo a la DB, considerando el grupo actual al que pertenece.
+
+*/
 
 export const sendPosition = async (latitude, longitude, altitude) => {
     try {
@@ -504,6 +624,13 @@ export const sendPosition = async (latitude, longitude, altitude) => {
         console.error("Error en modificación de posición del dispositivo. (CATCH)", error);
     }
 };
+
+
+/* 
+
+obsoleto
+
+*/
 
 export const handleLogin = async (username, password) => {
     try {
