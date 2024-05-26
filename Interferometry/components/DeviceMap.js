@@ -15,7 +15,12 @@ function DeviceMap({ position, devicePositions, refPoint }) {
             <MapView
                 style={styles.map}
                 initialRegion={initial}
-                region={initial}>
+                region={initial}
+                showsCompass={false}
+                showsMyLocationButton={false}
+                paddingAdjustmentBehavior='always'
+                >
+                    
                 {position && devicePositions.map(device => (
                     <Marker
                         key={device.id}

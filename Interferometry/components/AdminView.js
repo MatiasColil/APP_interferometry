@@ -1,7 +1,7 @@
 import { View, Text, Button, StyleSheet, Alert, Modal, TextInput } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import MapView, { Marker } from 'react-native-maps';
-import { fetchDevicePositions, callSimulation, sendRefPoint, sendDistance, sendParameters, simulation } from '../services/deviceService';
+import { fetchDevicePositions, callSimulation, sendRefPoint, sendParameters, simulation } from '../services/deviceService';
 import { useState, useEffect } from 'react';
 import Geolocation from '@react-native-community/geolocation';
 import { CarouselImagesAdmin, CarouselImagesSimu } from './CarouselImages';
@@ -22,6 +22,8 @@ function Map({ devicePositions, onMapPress, referencePoint, posAdmin }) {
                 initialRegion={initial}
                 region={initial}
                 onPress={onMapPress}
+                showsCompass={false}
+                showsMyLocationButton={false}
             >
                 {
                     devicePositions.map(device => (
@@ -50,6 +52,7 @@ function Map({ devicePositions, onMapPress, referencePoint, posAdmin }) {
 }
 
 export function AdminView() {
+    const [simulatedButton, setSimulatedButton] = useState(false)
     const [devicePositions, setDevicePositions] = useState([]);
     const [selectingReferencePoint, setSelectingReferencePoint] = useState(false);
     const [referencePoint, setReferencePoint] = useState(null);
@@ -109,6 +112,7 @@ export function AdminView() {
         console.log("se envío parametros")
         const sim = await simulation(observationTime, samplingTime, declination, frequency, scale, activeImageId,scheme, robust_param);
         setSimulatedImages(sim);
+        setSimulatedButton(true);
         setSimulationModalVisible(false);
     };
 
@@ -135,8 +139,10 @@ export function AdminView() {
             }
         );
 
+        let isMounted = true;
+
         const continuousFetch = async () => {
-            while (true) {
+            while (isMounted) {
                 try {
                     await new Promise(resolve => setTimeout(resolve, 3000));
                     const poss = await fetchDevicePositions();
@@ -152,11 +158,12 @@ export function AdminView() {
 
         return () => {
             Geolocation.clearWatch(watchId);
+            isMounted = false;
         };
     }, []);
     return (
         <View style={styles.container}>
-            {simulatedImages ? (
+            {simulatedButton ? (
                 <CarouselImagesSimu simImages={simulatedImages} ></CarouselImagesSimu>
             ) : (
                 <CarouselImagesAdmin onActiveItemChange={setActiveImageId}></CarouselImagesAdmin>
@@ -169,6 +176,11 @@ export function AdminView() {
             <View style={styles.button}>
                 <Button title="Definir punto de referencia" onPress={handleDefineReferencePoint} />
                 <Button title="Realizar simulación" onPress={formSimulation} />
+                {simulatedButton ? (
+                    <Button title='Ver las imagenes modelo' onPress={() => setSimulatedButton(false)}></Button>
+                ) : (
+                    <Button title='Ver las imagenes de simulación' onPress={() => setSimulatedButton(true)}></Button>
+                )}
             </View>
             <Modal
                 animationType="slide"
@@ -217,7 +229,7 @@ export function AdminView() {
 const styles = StyleSheet.create({
     map: {
         width: '100%',
-        flex: 0.3,
+        flex: 0.4,
     },
     marker: {
         backgroundColor: 'red',
@@ -236,13 +248,15 @@ const styles = StyleSheet.create({
         backgroundColor: 'white',
     },
     button: {
-        flex: 0.1,
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingHorizontal: 10,
         flexDirection: 'row',
         marginBottom: 10,
-        width: '100%'
+        width: '100%',
+        flexDirection: 'row',
+        flexWrap: 'wrap'
+
     },
     centeredView: {
         flex: 1,

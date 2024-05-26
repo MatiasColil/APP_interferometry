@@ -4,14 +4,17 @@ import {
     , sendPosition, callSimulation
 } from '../services/deviceService'
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text } from 'react-native';
+import { StyleSheet, View, Text, Button } from 'react-native';
 import DeviceMap from './DeviceMap';
 import messaging from '@react-native-firebase/messaging';
 import { CarouselImagesGuest, CarouselImagesSimu } from './CarouselImages';
 
+
+
 export function MapGuest() {
 
     const [devicePositions, setDevicePositions] = useState([]);
+    const [simulatedButton, setSimulatedButton] = useState(false)
     const [simulatedImages, setSimulatedImages] = useState(null);
     const [referencePoint, setReferencePoint] = useState(null);
     const [region, setRegion] = useState({
@@ -24,8 +27,10 @@ export function MapGuest() {
 
     useEffect(() => {
 
+        let isMounted = true;
+
         const continuousFetch = async () => {
-            while (true) {
+            while (isMounted) {
                 try {
                     await new Promise(resolve => setTimeout(resolve, 3000));
                     const poss = await fetchDevicePositions();
@@ -68,19 +73,23 @@ export function MapGuest() {
             console.log("IMAGENES RECIBIDAS IMAGENES RECIBIDAS IMAGENES RECIBIDAS IMAGENES RECIBIDAS")
             const images = await callSimulation();
             setSimulatedImages(images);
+            setSimulatedButton(true);
             console.log("Se realizó la simulación.")
             console.log("------------------------------------")
         });
 
+
         return () => {
             Geolocation.clearWatch(watchId);
+            isMounted = false
             unsubscribe();
         };
 
     }, []);
+
     return (
         <View style={styles.container}>
-            {simulatedImages ? (
+            {simulatedButton ? (
                 <CarouselImagesSimu simImages={simulatedImages} ></CarouselImagesSimu>
             ) : (
                 <CarouselImagesGuest></CarouselImagesGuest>
@@ -90,6 +99,15 @@ export function MapGuest() {
                 devicePositions={devicePositions}
                 refPoint={referencePoint}
             />
+            {simulatedButton ? (
+                <View style={styles.buttonContainer}>
+                    <Button title='Ver las imagenes modelo' onPress={() => setSimulatedButton(false)}></Button>
+                </View>
+            ) : (
+                <View style={styles.buttonContainer}>
+                    <Button title='Ver las imagenes de simulación' onPress={() => setSimulatedButton(true)}></Button>
+                </View>
+            )}
         </View>
     );
 };
@@ -97,8 +115,9 @@ export function MapGuest() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+    },
+    buttonContainer: {
+        flexDirection: 'row',
         justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: 'white',
-    }
+    },
 })

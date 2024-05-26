@@ -8,6 +8,13 @@ import { SelectGroupAdmin, SelectGroupGuest } from './components/SelectGroup';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { isTokenValid, login } from './services/deviceService';
+import { ScreenStack, ScreenStackHeaderConfig } from 'react-native-screens';
+import { HeaderBackButton } from '@react-navigation/elements';
+
+
+<ScreenStackHeaderConfig shouldUseActivityState={true} />
+
+
 
 
 function HomeScreen({ navigation }) {
@@ -18,27 +25,30 @@ function HomeScreen({ navigation }) {
     const handleModal = async () => {
         const validToken = await isTokenValid();
         if (validToken) {
-            navigation.navigate('GroupAdmin');
+            navigation.replace('GroupAdmin');
         } else {
-            setModalVisible(true);
+            setModalVisible(!isModalVisible);
         }
     };
 
     const handleLogin = async () => {
         const response = await login(username, password);
-        if (response){
+        if (response) {
             setModalVisible(false)
-            navigation.navigate('GroupAdmin');
+            navigation.replace('GroupAdmin');
         }
-        else{
+        else {
             console.log("error al realizar el login");
         }
     };
 
+
+
+
     return (
         <View style={{ flex: 1, alignItems: 'center', flexDirection: 'row', justifyContent: 'center' }}>
-            <Button title='Administrador' onPress={handleModal}></Button>
-            <Button title='Participante' onPress={() => navigation.navigate('Seleccionar grupo')}></Button>
+            <Button title='Administrador' onPress={handleModal} />
+            <Button title='Participante' onPress={() => navigation.replace('Seleccionar grupo')}></Button>
             {/* <Button title='Test' onPress={() => navigation.navigate('Test')} ></Button> */}
             <Modal
                 animationType="slide"
@@ -46,7 +56,8 @@ function HomeScreen({ navigation }) {
                 visible={isModalVisible}
                 onRequestClose={() => {
                     setModalVisible(false);
-                }}>
+                }}
+            >
                 <View style={styles.centeredView}>
                     <View style={styles.modalView}>
                         <TextInput placeholder='Usuario' style={styles.inputField} onChangeText={setUsername} placeholderTextColor={'black'}></TextInput>
@@ -66,20 +77,47 @@ const Stack = createNativeStackNavigator();
 
 function App() {
     return (
-        <NavigationContainer>
-            <Stack.Navigator>
-                <Stack.Screen name="Home" component={HomeScreen} />
-                <Stack.Screen name="Simulación" component={MapGuest} />
+        <NavigationContainer >
+            <Stack.Navigator >
+                <Stack.Screen name="Home" component={HomeScreen} options={{ freezeOnBlur: true }} />
                 <Stack.Screen name="Login" component={LoginView} />
-                <Stack.Screen name="Simulación administrador" component={AdminView} />
-                <Stack.Screen name='Seleccionar grupo' component={SelectGroupGuest} />
-                <Stack.Screen name='GroupAdmin' component={SelectGroupAdmin} />
+                <Stack.Screen name='GroupAdmin' component={SelectGroupAdmin} 
+                options={({ navigation }) => ({
+                    freezeOnBlur: true,
+                    headerLeft: (props) => (
+                        <HeaderBackButton
+                            {...props}
+                            onPress={() => {
+                                
+                                navigation.replace("Home");
+                            }}
+                        />
+                    ),
+                })}/>
+                <Stack.Screen name='Seleccionar grupo' component={SelectGroupGuest} 
+                options={({ navigation }) => ({
+                    freezeOnBlur: true,
+                    headerLeft: (props) => (
+                        <HeaderBackButton
+                            {...props}
+                            onPress={() => {
+                                
+                                navigation.replace("Home");
+                            }}
+                        />
+                    ),
+                })} />
+                <Stack.Screen name="Simulación administrador" component={AdminView} options={{ freezeOnBlur: true }} />
+                <Stack.Screen name="Simulación" component={MapGuest} options={{
+                    freezeOnBlur: true,
+                }} />
                 {/* <Stack.Screen name='Test' component={Test} /> */}
             </Stack.Navigator>
         </NavigationContainer>
 
     );
-}
+};
+
 
 const styles = StyleSheet.create({
     centeredView: {
