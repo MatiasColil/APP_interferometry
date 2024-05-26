@@ -3,8 +3,8 @@ import uuid from 'react-native-uuid';
 import messaging from '@react-native-firebase/messaging';
 
 
-const API_BASE_URL = 'http://10.0.2.2:8000';
-//const API_BASE_URL ='http://www.interferometryapp.com';
+//const API_BASE_URL = 'http://10.0.2.2:8000';
+const API_BASE_URL ='http://www.interferometryapp.com';
 
 
 /* 
