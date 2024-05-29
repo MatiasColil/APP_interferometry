@@ -23,6 +23,9 @@ Para la instalación de Android Studio seguir indicaciones: https://reactnative.
 
 En caso de tener que volver a firmar la aplicación: https://reactnative.dev/docs/signed-apk-android
 
+En caso de tener que cambiar la API Key del SDK Map de Google: https://github.com/react-native-maps/react-native-maps/blob/master/docs/installation.md - https://developers.google.com/maps/documentation/android-sdk/get-api-key
+
+
 # Librerias
 
 1. React Native: https://reactnative.dev/docs/0.73/components-and-apis
